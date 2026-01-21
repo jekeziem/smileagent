@@ -1,0 +1,36 @@
+# ============================================
+# SMILEAGENT DEPENDENCIES
+# ============================================
+# Install: pip install -r requirements.txt
+# ============================================
+
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+
+# Request Handling
+python-multipart==0.0.6
+
+# PDF Generation
+reportlab==4.1.0
+
+# Environment & Security
+python-dotenv==1.0.0
+cryptography==42.0.0
+
+# ============================================
+# FUTURE DEPENDENCIES (uncomment when needed)
+# ============================================
+# Database
+# sqlalchemy==2.0.25
+# psycopg2-binary==2.9.9
+# alembic==1.13.1
+
+# Email
+# aiosmtplib==3.0.1
+
+# Payments
+# stripe==7.12.0
+
+# Monitoring
+# sentry-sdk[fastapi]==1.40.0

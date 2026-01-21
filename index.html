@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmileAgent | Your Smile, Optimised</title>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: { 50: '#ECFDF5', 100: '#D1FAE5', 200: '#A7F3D0', 500: '#059669', 600: '#047857', 700: '#065F46' },
+                        gray: { 50: '#F9FAFB', 100: '#F3F4F6', 200: '#E5E7EB', 400: '#9CA3AF', 500: '#6B7280', 700: '#374151', 900: '#111827' },
+                        red: { 50: '#FEF2F2', 100: '#FEE2E2', 500: '#EF4444', 600: '#DC2626' },
+                        amber: { 50: '#FFFBEB', 100: '#FEF3C7', 500: '#F59E0B', 600: '#D97706' }
+                    },
+                    fontFamily: { sans: ['DM Sans', 'sans-serif'], heading: ['Fraunces', 'serif'] },
+                    boxShadow: { 'soft': '0 20px 40px -15px rgba(0, 0, 0, 0.08)', 'card': '0 4px 20px rgba(5, 150, 105, 0.1)' },
+                    animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite', 'slide-up': 'slideUp 0.3s ease-out', 'fade-in': 'fadeIn 0.4s ease-out' },
+                    keyframes: {
+                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        [v-cloak] { display: none !important; }
+        @keyframes scan { 0%, 100% { top: 10%; } 50% { top: 85%; } }
+        .scanner-line { animation: scan 2s ease-in-out infinite; }
+        .toast-enter { animation: slideInRight 0.3s ease-out; }
+        .toast-exit { animation: slideOutRight 0.3s ease-out forwards; }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        .clinic-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .clinic-card:hover { transform: translateY(-2px); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #059669; border-radius: 10px; }
+        .urgent-mode { background: linear-gradient(180deg, #FEF2F2 0%, #FFFFFF 100%); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-emerald-50 via-white to-emerald-50 min-h-screen">
+
+<div id="app" v-cloak>
+    <!-- Toast Container -->
+    <div class="fixed top-4 right-4 z-50 space-y-2">
+        <div v-for="toast in toasts" :key="toast.id"
+             :class="['px-4 py-3 rounded-xl shadow-lg max-w-sm', toast.exiting ? 'toast-exit' : 'toast-enter',
+                      toast.type === 'success' ? 'bg-emerald-500 text-white' : '',
+                      toast.type === 'error' ? 'bg-red-500 text-white' : '',
+                      toast.type === 'info' ? 'bg-gray-800 text-white' : '',
+                      toast.type === 'warning' ? 'bg-amber-500 text-white' : '']">
+            <div class="flex items-center gap-2">
+                <i v-if="toast.type === 'success'" class="ph ph-check-circle text-lg"></i>
+                <i v-if="toast.type === 'error'" class="ph ph-x-circle text-lg"></i>
+                <i v-if="toast.type === 'info'" class="ph ph-info text-lg"></i>
+                <i v-if="toast.type === 'warning'" class="ph ph-warning text-lg"></i>
+                <span class="text-sm font-medium">{{ toast.message }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="max-w-md mx-auto px-4 py-6 min-h-screen" :class="{ 'urgent-mode': isEmergencyMode && triageStep > 0 }">
+        
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="inline-flex items-center gap-2 bg-white/80 backdrop-blur px-4 py-2 rounded-full shadow-soft cursor-pointer" @click="goHome">
+                    <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
+                        <i class="ph ph-tooth text-white text-lg"></i>
+                    </div>
+                    <span class="font-heading font-semibold text-gray-900">SmileAgent</span>
+                </div>
+                <div class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+                    Dublin 22 Pilot
+                </div>
+            </div>
+            <h1 v-if="!appMode" class="font-heading text-2xl font-bold text-gray-900 mb-1">Your Smile,<br>Optimised.</h1>
+            <h1 v-else-if="appMode === 'emergency'" class="font-heading text-2xl font-bold text-gray-900 mb-1">
+                {{ triageStep === 0 ? 'Emergency Dental Help' : triageStep === 'ae_redirect' ? '🚨 Hospital Required' : 'Finding You Care' }}
+            </h1>
+            <h1 v-else class="font-heading text-2xl font-bold text-gray-900 mb-1">Your Smile,<br>Optimised.</h1>
+            <p v-if="!appMode" class="text-sm text-gray-500">The Relief You Need.<br>The Smile You Want.</p>
+        </header>
+
+        <!-- ============================================ -->
+        <!-- ENTRY POINT: MODE SELECTION -->
+        <!-- ============================================ -->
+        <div v-if="!appMode" class="animate-fade-in space-y-4">
+            <div class="bg-white rounded-2xl shadow-soft p-5">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4 text-center">What brings you here today?</h2>
+                
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <!-- Emergency Path -->
+                    <button @click="startEmergencyMode" 
+                            class="p-5 rounded-xl border-2 border-red-200 bg-red-50 hover:border-red-400 hover:bg-red-100 transition-all text-center">
+                        <div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="ph ph-first-aid text-2xl text-white"></i>
+                        </div>
+                        <span class="font-semibold text-gray-900 block">I'm in Pain</span>
+                        <span class="text-xs text-gray-500">Find urgent help</span>
+                    </button>
+                    
+                    <!-- Cosmetic Path -->
+                    <button @click="startCosmeticMode" 
+                            class="p-5 rounded-xl border-2 border-emerald-200 bg-emerald-50 hover:border-emerald-400 hover:bg-emerald-100 transition-all text-center">
+                        <div class="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="ph ph-smiley text-2xl text-white"></i>
+                        </div>
+                        <span class="font-semibold text-gray-900 block">Improve My Smile</span>
+                        <span class="text-xs text-gray-500">Cosmetic treatments</span>
+                    </button>
+                </div>
+                
+                <button @click="skipToCheckup" class="w-full py-3 text-sm text-gray-500 hover:text-gray-700">
+    		    <i class="ph ph-calendar-check mr-1"></i>
+    	             I just need a routine checkup
+		</button>
+		</div>
+            
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-white/80 rounded-xl p-3">
+                    <div class="text-lg font-bold text-emerald-600">3</div>
+                    <div class="text-[10px] text-gray-500">Clinics</div>
+                </div>
+                <div class="bg-white/80 rounded-xl p-3">
+                    <div class="text-lg font-bold text-emerald-600">20%</div>
+                    <div class="text-[10px] text-gray-500">Tax Relief</div>
+                </div>
+                <div class="bg-white/80 rounded-xl p-3">
+                    <div class="text-lg font-bold text-emerald-600">4.8★</div>
+                    <div class="text-[10px] text-gray-500">Avg Rating</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- EMERGENCY MODE: TRIAGE FLOW -->
+        <!-- ============================================ -->
+        <div v-if="appMode === 'emergency'" class="animate-fade-in">
+            
+            <!-- Back Button -->
+            <button v-if="triageStep !== 'ae_redirect' && triageStep !== 'results' && triageStep !== 'confirmed'" @click="goBackTriage" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4">
+                <i class="ph ph-arrow-left"></i>
+                <span class="text-sm">Back</span>
+            </button>
+            
+            <!-- Step 1: Red Flag Check -->
+            <div v-if="triageStep === 1" class="bg-white rounded-2xl shadow-soft p-5 space-y-4">
+                <h2 class="text-lg font-semibold text-gray-900">First, let's check for anything serious</h2>
+                <p class="text-sm text-gray-500">Select any that apply to you right now</p>
+                
+                <div class="space-y-2">
+                    <label v-for="flag in redFlags" :key="flag.id"
+                           :class="['flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all',
+                                    selectedRedFlags.includes(flag.id) ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300']">
+                        <input type="checkbox" :value="flag.id" v-model="selectedRedFlags" class="hidden">
+                        <span class="text-2xl">{{ flag.icon }}</span>
+                        <span class="text-sm text-gray-700">{{ flag.label }}</span>
+                    </label>
+                </div>
+                
+                <button @click="selectedRedFlags = []; triageStep = 2" 
+                        class="w-full py-4 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600">
+                    <i class="ph ph-check mr-2"></i>
+                    None of these apply to me
+                </button>
+                
+                <button v-if="selectedRedFlags.length > 0" @click="checkRedFlags"
+                        class="w-full py-4 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600">
+                    Seek emergency medical care immediately
+                </button>
+            </div>
+            
+            <!-- A&E Redirect -->
+            <div v-if="triageStep === 'ae_redirect'" class="bg-white rounded-2xl shadow-soft p-5 text-center space-y-4">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                    <span class="text-4xl">🚨</span>
+                </div>
+                
+                <h2 class="text-xl font-bold text-gray-900">These symptoms need hospital assessment</h2>
+                <p class="text-sm text-gray-600">
+                    Based on what you've described, you should go to A&E or call 999. 
+                    These symptoms can indicate a serious condition.
+                </p>
+                
+                <a href="tel:999" class="block w-full py-4 bg-red-600 text-white rounded-xl font-bold text-lg">
+                    📞 Call 999
+                </a>
+                
+                <button @click="findNearestAE" class="w-full py-3 border-2 border-red-500 text-red-600 rounded-xl font-semibold">
+                    🏥 Find Nearest A&E
+                </button>
+                
+                <button @click="triageStep = 2" class="text-sm text-gray-500 underline">
+                    I understand, but I want to continue
+                </button>
+            </div>
+            
+            <!-- Step 2: Pain Assessment -->
+            <div v-if="triageStep === 2" class="bg-white rounded-2xl shadow-soft p-5 space-y-5">
+                <h2 class="text-lg font-semibold text-gray-900">Tell us about your pain</h2>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Pain level right now</label>
+                    <div class="flex gap-1">
+                        <button v-for="n in 10" :key="n" @click="triageData.painLevel = n"
+                                :class="['flex-1 py-3 rounded-lg font-semibold transition-all text-sm',
+                                         triageData.painLevel === n 
+                                             ? (n <= 3 ? 'bg-emerald-500 text-white' : n <= 6 ? 'bg-amber-500 text-white' : 'bg-red-500 text-white')
+                                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200']">
+                            {{ n }}
+                        </button>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>Mild</span><span>Moderate</span><span>Severe</span>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer">
+                        <input type="checkbox" v-model="triageData.painWorsening" class="w-5 h-5 accent-emerald-500">
+                        <span class="text-sm text-gray-700">Pain is getting worse</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer">
+                        <input type="checkbox" v-model="triageData.sleepDisrupted" class="w-5 h-5 accent-emerald-500">
+                        <span class="text-sm text-gray-700">Pain is keeping me awake</span>
+                    </label>
+                </div>
+                
+                <button @click="triageStep = 3" :disabled="!triageData.painLevel"
+                        :class="['w-full py-4 rounded-xl font-semibold transition-all',
+                                 triageData.painLevel ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-gray-200 text-gray-400']">
+                    Continue
+                </button>
+            </div>
+            
+            <!-- Step 3: Description -->
+            <div v-if="triageStep === 3" class="bg-white rounded-2xl shadow-soft p-5 space-y-4">
+                <h2 class="text-lg font-semibold text-gray-900">Quick description</h2>
+                <p class="text-sm text-gray-500">This helps the dentist prepare for your visit</p>
+                
+                <textarea v-model="triageData.chiefComplaint" rows="3" maxlength="300"
+                          placeholder="E.g., 'Sharp pain in lower right molar, started 2 days ago'"
+                          class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">How long have you had symptoms?</label>
+                    <select v-model="triageData.symptomDuration" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        <option :value="6">Less than a day</option>
+                        <option :value="24">1-2 days</option>
+                        <option :value="72">3-7 days</option>
+                        <option :value="168">More than a week</option>
+                    </select>
+                </div>
+                
+                <button @click="submitTriage" :disabled="!triageData.chiefComplaint || triageLoading"
+                        :class="['w-full py-4 rounded-xl font-semibold transition-all',
+                                 triageData.chiefComplaint && !triageLoading ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-gray-200 text-gray-400']">
+                    {{ triageLoading ? 'Finding clinics...' : 'Find available clinics' }}
+                </button>
+            </div>
+            
+            <!-- Triage Result + Clinic Results -->
+            <div v-if="triageStep === 'results'" class="space-y-4">
+                
+                <!-- Urgency Banner -->
+                <div :class="['rounded-2xl p-4', 
+                             triageResult.urgency === 'orange' ? 'bg-amber-100 border-2 border-amber-400' :
+                             triageResult.urgency === 'yellow' ? 'bg-yellow-100 border-2 border-yellow-400' :
+                             'bg-emerald-100 border-2 border-emerald-400']">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">{{ triageResult.urgency === 'orange' ? '🟠' : triageResult.urgency === 'yellow' ? '🟡' : '🟢' }}</span>
+                        <div>
+                            <p class="font-bold text-gray-900">{{ triageResult.urgency_display }}</p>
+                            <p class="text-sm text-gray-700">{{ triageResult.recommended_timeframe }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Self-Care Tips -->
+                <div v-if="triageResult.self_care_tips && triageResult.self_care_tips.length" class="bg-white rounded-2xl shadow-soft p-4">
+                    <h3 class="font-semibold text-gray-900 mb-2"><i class="ph ph-first-aid-kit text-emerald-500 mr-1"></i> While you wait</h3>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li v-for="tip in triageResult.self_care_tips" :key="tip" class="flex items-start gap-2">
+                            <i class="ph ph-check text-emerald-500 mt-0.5"></i>
+                            <span>{{ tip }}</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Payment Filter -->
+                <div class="bg-white rounded-2xl shadow-soft p-4">
+                    <h3 class="font-semibold text-gray-900 mb-3">How will you pay?</h3>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button @click="setPaymentFilter('private')"
+                                :class="['py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all',
+                                         paymentFilter === 'private' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                            Private
+                        </button>
+                        <button @click="setPaymentFilter('medical_card')"
+                                :class="['py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all',
+                                         paymentFilter === 'medical_card' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                            Medical Card
+                        </button>
+                        <button @click="setPaymentFilter('prsi')"
+                                :class="['py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all',
+                                         paymentFilter === 'prsi' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                            PRSI
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Clinic Results -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-heading font-semibold text-gray-900">
+                            <i class="ph ph-map-pin text-emerald-500 mr-1"></i>
+                            Available Clinics
+                        </h3>
+                        <span class="text-sm text-gray-500">{{ emergencyClinics.length }} found</span>
+                    </div>
+                    
+                    <div v-if="emergencyClinics.length === 0" class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                        <p class="text-sm text-amber-800">No clinics match your filters. Try adjusting payment type or expanding search area.</p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div v-for="clinic in emergencyClinics" :key="clinic.id" class="clinic-card bg-white rounded-2xl shadow-card p-4">
+                            <!-- Clinic Header -->
+                            <div class="flex items-start justify-between mb-2">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <h4 class="font-heading font-semibold text-gray-900">{{ clinic.clinic_name }}</h4>
+                                        <span v-if="clinic.verified" class="text-emerald-500"><i class="ph-fill ph-seal-check"></i></span>
+                                    </div>
+                                    <p class="text-xs text-gray-500">
+                                        <i class="ph ph-map-pin text-emerald-500"></i>
+                                        {{ clinic.location }} · {{ clinic.distance_km }}km
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="flex items-center gap-1 text-amber-500">
+                                        <i class="ph-fill ph-star text-sm"></i>
+                                        <span class="text-sm font-semibold text-gray-900">{{ clinic.rating }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- MC Badge -->
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <span v-if="clinic.accepts_medical_card && clinic.mc_accepting_new" 
+                                      class="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+                                    <i class="ph ph-check-circle"></i> Medical Card ✓
+                                </span>
+                                <span v-else-if="clinic.accepts_medical_card && !clinic.mc_accepting_new"
+                                      class="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                                    <i class="ph ph-pause-circle"></i> MC - Full
+                                </span>
+                                <span v-else
+                                      class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">
+                                    No Medical Card
+                                </span>
+                                
+                                <span v-if="clinic.accepts_prsi"
+                                      class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                    PRSI ✓
+                                </span>
+                                
+                                <span v-if="clinic.has_emergency_slots"
+                                      class="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                                    <i class="ph ph-clock"></i> ~{{ clinic.typical_wait_hours }}h wait
+                                </span>
+                            </div>
+                            
+                            <!-- Price -->
+                            <div class="flex justify-between items-center mb-3 p-2 bg-gray-50 rounded-lg">
+                                <span class="text-sm text-gray-600">Emergency Exam + X-Ray</span>
+                                <span class="font-bold text-gray-900">€{{ clinic.pricing?.emergency_exam || 90 }}</span>
+                            </div>
+                            
+                            <!-- Book Button -->
+                            <button @click="selectEmergencyClinic(clinic)" 
+                                    class="w-full py-3 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-all">
+                                Send Request
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <button @click="goHome" class="w-full py-3 text-gray-500 text-sm">
+                    ← Start over
+                </button>
+            </div>
+            
+            <!-- Emergency Booking Form -->
+            <div v-if="triageStep === 'booking'" class="space-y-4">
+                <button @click="triageStep = 'results'" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
+                    <i class="ph ph-arrow-left"></i>
+                    <span class="text-sm">Back to clinics</span>
+                </button>
+                
+                <div class="bg-white rounded-2xl shadow-soft p-5">
+                    <h3 class="font-heading font-bold text-xl text-gray-900 mb-1">Confirm Your Details</h3>
+                    <p class="text-sm text-gray-600 mb-4">{{ selectedEmergencyClinic?.clinic_name }}</p>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Name</label>
+                            <input v-model="emergencyBooking.name" type="text" placeholder="Your full name"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Phone *</label>
+                            <input v-model="emergencyBooking.phone" type="tel" placeholder="087 123 4567"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Preferred contact</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="emergencyBooking.contactPreference = 'call'"
+                                        :class="['py-2 rounded-lg border-2 text-sm font-medium',
+                                                 emergencyBooking.contactPreference === 'call' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    📞 Call me
+                                </button>
+                                <button @click="emergencyBooking.contactPreference = 'sms'"
+                                        :class="['py-2 rounded-lg border-2 text-sm font-medium',
+                                                 emergencyBooking.contactPreference === 'sms' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    💬 SMS
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div v-if="paymentFilter === 'medical_card'">
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Medical Card (last 4 digits)</label>
+                            <input v-model="emergencyBooking.mcLast4" type="text" maxlength="4" placeholder="1234"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Any other details?</label>
+                            <label class="flex items-center gap-2 p-2">
+                                <input type="checkbox" v-model="emergencyBooking.sensitiveToTemp" class="accent-emerald-500">
+                                <span class="text-sm text-gray-700">Sensitive to hot/cold</span>
+                            </label>
+                            <input v-model="emergencyBooking.previousTreatment" type="text" placeholder="Previous treatment on this tooth (optional)"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                    
+
+			<div class="border-t border-gray-200 pt-4">
+   				 <label class="flex items-start gap-3 p-3 bg-blue-50 rounded-xl border border-blue-200 cursor-pointer">
+        				<input type="checkbox" v-model="emergencyBooking.gdprConsent" class="mt-1 w-5 h-5 accent-emerald-500">
+        				<span class="text-xs text-gray-700">
+       			     <strong>Required:</strong> I consent to SmileAgent processing my health information to connect me with emergency dental care. 
+            		<a href="https://smileagent.ie/privacy" target="_blank" class="text-emerald-600 underline">Privacy Policy</a>
+        		</span>
+   			 </label>
+			</div>
+
+
+
+                    <button @click="submitEmergencyBooking" :disabled="!emergencyBooking.phone || emergencyBookingLoading"
+                            :class="['w-full mt-4 py-4 rounded-xl font-semibold transition-all',
+                                     emergencyBooking.phone && !emergencyBookingLoading ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-gray-200 text-gray-400']">
+                        {{ emergencyBookingLoading ? 'Sending...' : 'Send to Clinic' }}
+                    </button>
+                    
+                    <p class="text-xs text-gray-400 text-center mt-3">
+                        Your request has been sent. Appointment availability is subject to the clinic's review and capacity.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Emergency Booking Confirmation -->
+            <div v-if="triageStep === 'confirmed'" class="space-y-4">
+                <div class="bg-white rounded-2xl shadow-soft p-6 text-center">
+                    <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="ph ph-check-circle text-4xl text-emerald-500"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-2">Request Sent!</h2>
+                    <p class="text-sm text-gray-600 mb-4">
+                        {{ selectedEmergencyClinic?.clinic_name }} has your details and will contact you shortly.
+                    </p>
+                    
+                    <div class="bg-gray-50 rounded-xl p-4 text-left mb-4">
+                        <p class="text-sm text-gray-600"><strong>Reference:</strong> {{ emergencyBriefId }}</p>
+                        <p class="text-sm text-gray-600"><strong>Clinic:</strong> {{ selectedEmergencyClinic?.clinic_name }}</p>
+                        <p class="text-sm text-gray-600"><strong>Phone:</strong> {{ selectedEmergencyClinic?.phone }}</p>
+                    </div>
+                    
+                    <a :href="'tel:' + selectedEmergencyClinic?.phone" class="block w-full py-3 border-2 border-emerald-500 text-emerald-600 rounded-xl font-semibold mb-3">
+                        📞 Call Clinic Directly
+                    </a>
+                    
+                    <button @click="goHome" class="w-full py-3 bg-emerald-500 text-white rounded-xl font-semibold">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- COSMETIC MODE: ORIGINAL FLOW RESTORED -->
+        <!-- ============================================ -->
+        <div v-if="appMode === 'cosmetic'" class="animate-fade-in">
+            
+            <!-- Back to Mode Selection -->
+            <button v-if="!result && !loading" @click="goHome" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4">
+                <i class="ph ph-arrow-left"></i>
+                <span class="text-sm">Back</span>
+            </button>
+            
+            <!-- ============================================ -->
+            <!-- STEP 1: UPLOAD PHOTO (ORIGINAL RESTORED) -->
+            <!-- ============================================ -->
+            <div v-if="!result && !loading" class="animate-fade-in">
+                
+                <!-- Photo Upload -->
+                <div class="bg-white rounded-2xl shadow-soft p-5 mb-4">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                        Upload your smile
+                    </label>
+                    
+                    <div @click="triggerUpload" 
+                         @dragover.prevent="dragActive = true"
+                         @dragleave="dragActive = false"
+                         @drop.prevent="handleDrop"
+                         :class="[
+                             'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
+                             dragActive ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-emerald-300'
+                         ]">
+                        
+                        <div v-if="!previewUrl">
+                            <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="ph ph-camera text-3xl text-emerald-500"></i>
+                            </div>
+                            <p class="text-gray-700 font-medium mb-1">Tap to Upload Smile</p>
+                            <p class="text-xs text-gray-400">Supports JPG, PNG</p>
+                        </div>
+                        
+                        <div v-else class="relative">
+                            <img :src="previewUrl" alt="Your smile" class="w-32 h-32 object-cover rounded-xl mx-auto">
+                            <button @click.stop="clearPhoto" 
+                                    class="absolute top-0 right-1/2 translate-x-16 -translate-y-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center">
+                                <i class="ph ph-x text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <input type="file" ref="fileInput" @change="handleFileSelect" accept="image/*" class="hidden">
+                    
+                    <!-- Consent -->
+                    <label class="flex items-start gap-2 mt-3 cursor-pointer">
+                        <input type="checkbox" v-model="savePhotoConsent" class="mt-1 accent-emerald-500">
+                        <span class="text-xs text-gray-500">Save my photo for 7 days to generate my Med 2 form</span>
+                    </label>
+                    
+                    <!-- Security Badge -->
+                    <div class="flex items-center justify-center gap-1 mt-3 text-xs text-gray-400">
+                        <i class="ph ph-lock-simple"></i>
+                        <span>Secured by AES-256</span>
+                    </div>
+                </div>
+                
+                <!-- OR Divider -->
+                <div class="flex items-center gap-3 my-4">
+                    <div class="flex-1 h-px bg-gray-200"></div>
+                    <span class="text-xs text-gray-400 font-medium">OR</span>
+                    <div class="flex-1 h-px bg-gray-200"></div>
+                </div>
+                
+                <!-- Treatment Selection (Skip AI) -->
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 text-center mb-3">Already know what you need?</p>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button @click="skipToTreatment('invisalign')"
+                                class="px-3 py-3 rounded-xl text-sm font-medium transition-all border-2 bg-white text-gray-700 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50">
+                            <i class="ph ph-tooth text-lg mb-1 text-emerald-500"></i>
+                            <div>Invisalign</div>
+                        </button>
+                        <button @click="skipToTreatment('composite_bonding')"
+                                class="px-3 py-3 rounded-xl text-sm font-medium transition-all border-2 bg-white text-gray-700 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50">
+                            <i class="ph ph-sparkle text-lg mb-1 text-emerald-500"></i>
+                            <div>Composite Bonding</div>
+                        </button>
+                        <button @click="skipToTreatment('veneers')"
+                                class="px-3 py-3 rounded-xl text-sm font-medium transition-all border-2 bg-white text-gray-700 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50">
+                            <i class="ph ph-smiley text-lg mb-1 text-emerald-500"></i>
+                            <div>Veneers</div>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Analyse Button (only shows when photo uploaded) -->
+                <div v-if="previewUrl" class="space-y-3">
+                    <!-- Treatment Selection for AI path -->
+                    <div class="bg-white rounded-2xl shadow-soft p-4">
+                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                            What treatment interests you?
+                        </label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button v-for="(treatment, key) in treatments" 
+                                    :key="key"
+                                    @click="selectTreatment(key)"
+                                    :class="[
+                                        'px-3 py-2 rounded-lg text-sm font-medium transition-all border-2',
+                                        selectedTreatment === key 
+                                            ? 'bg-emerald-500 text-white border-emerald-500' 
+                                            : 'bg-white text-gray-700 border-gray-200 hover:border-emerald-300'
+                                    ]">
+                                {{ treatment.display_name }}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button @click="analyseSmile" 
+                            :disabled="!selectedTreatment"
+                            :class="[
+                                'w-full py-4 rounded-xl font-semibold text-lg transition-all',
+                                selectedTreatment
+                                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-200'
+                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            ]">
+                        <i class="ph ph-sparkle mr-2"></i>
+                        Analyse My Smile
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- LOADING: AI SCAN ANIMATION (ORIGINAL) -->
+            <!-- ============================================ -->
+            <div v-if="loading" class="animate-fade-in">
+                <div class="bg-white rounded-2xl shadow-soft p-6 text-center">
+                    
+                    <!-- Scan Preview -->
+                    <div class="relative w-48 h-48 mx-auto mb-6 rounded-xl overflow-hidden bg-gray-100">
+                        <img v-if="previewUrl" :src="previewUrl" alt="Scanning" class="w-full h-full object-cover">
+                        
+                        <!-- Scanner Line -->
+                        <div class="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent scanner-line"></div>
+                        
+                        <!-- Corner Brackets -->
+                        <div class="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-emerald-500"></div>
+                        <div class="absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 border-emerald-500"></div>
+                        <div class="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-emerald-500"></div>
+                        <div class="absolute bottom-2 right-2 w-6 h-6 border-b-2 border-r-2 border-emerald-500"></div>
+                    </div>
+                    
+                    <!-- Status Messages -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-center gap-2">
+                            <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                            <span class="text-sm font-medium text-gray-700">{{ statusMessage }}</span>
+                        </div>
+                        <div class="w-48 mx-auto h-1 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-emerald-500 transition-all duration-300" :style="{ width: scanProgress + '%' }"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- STEP 2: RESULTS (ORIGINAL MED 2 SECTION) -->
+            <!-- ============================================ -->
+            <div v-if="result && !showForm && !showPayment && !bookingComplete" class="animate-fade-in space-y-4">
+                
+                <!-- Back Button -->
+                <button @click="result = null" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
+                    <i class="ph ph-arrow-left"></i>
+                    <span class="text-sm">Back</span>
+                </button>
+                
+                <!-- Med 2 Tax Eligibility Section (FULL ORIGINAL) -->
+                <div class="bg-white rounded-2xl shadow-soft p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-semibold text-gray-900">
+                            <i class="ph ph-receipt text-emerald-500 mr-1"></i>
+                            Check Your 20% Tax Relief Here
+                        </h3>
+                        <button @click="med2Active = !med2Active" 
+        			:class="['w-11 h-6 rounded-full relative transition-colors flex-shrink-0', med2Active ? 'bg-emerald-500' : 'bg-gray-300']">
+    			<span :class="['absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all duration-200 shadow',
+                  			med2Active ? 'translate-x-5' : 'translate-x-0']"></span>
+			</button>
+                    </div>
+                    
+                    <!-- Eligibility Questions -->
+                    <div v-if="med2Active && !eligibilityChecked" class="space-y-4">
+                        <!-- STEP 1: Who's paying -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Who's paying for treatment?</label>
+                            <div class="space-y-2">
+                                <button @click="taxForm.who_is_paying = 'self'" 
+                                        :class="['w-full px-4 py-3 rounded-lg text-sm border-2 transition-all text-left',
+                                                 taxForm.who_is_paying === 'self' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    <i class="ph ph-user mr-2"></i>I'm paying for myself
+                                </button>
+                                <button @click="taxForm.who_is_paying = 'paying_for_other'" 
+                                        :class="['w-full px-4 py-3 rounded-lg text-sm border-2 transition-all text-left',
+                                                 taxForm.who_is_paying === 'paying_for_other' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    <i class="ph ph-hand-heart mr-2"></i>I'm paying for someone else<br>
+                                    <span class="text-xs text-gray-500 ml-6">(my child, parent, spouse)</span>
+                                </button>
+                                <button @click="taxForm.who_is_paying = 'other_paying_for_me'" 
+                                        :class="['w-full px-4 py-3 rounded-lg text-sm border-2 transition-all text-left',
+                                                 taxForm.who_is_paying === 'other_paying_for_me' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    <i class="ph ph-users mr-2"></i>Someone else is paying for me
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Payer details (if someone else paying for me) -->
+                        <div v-if="taxForm.who_is_paying === 'other_paying_for_me'" class="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-200">
+                            <h4 class="text-sm font-semibold text-gray-700">Who is paying for your treatment?</h4>
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="taxForm.payer_relationship = 'parent'" 
+                                        :class="['px-3 py-2 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.payer_relationship === 'parent' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Parent
+                                </button>
+                                <button @click="taxForm.payer_relationship = 'spouse'" 
+                                        :class="['px-3 py-2 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.payer_relationship === 'spouse' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Spouse / Partner
+                                </button>
+                                <button @click="taxForm.payer_relationship = 'child'" 
+                                        :class="['px-3 py-2 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.payer_relationship === 'child' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Son / Daughter
+                                </button>
+                                <button @click="taxForm.payer_relationship = 'other'" 
+                                        :class="['px-3 py-2 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.payer_relationship === 'other' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Other family
+                                </button>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">Payer's Full Name</label>
+                                <input v-model="taxForm.payer_name" type="text" placeholder="Full name"
+                                       class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-emerald-500">
+                                <p class="text-[10px] text-gray-400 mt-1">(This name will appear on the Med 2 form)</p>
+                            </div>
+                        </div>
+                        
+                        <!-- STEP 2: Tax status -->
+                        <div v-if="taxForm.who_is_paying">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                {{ taxForm.who_is_paying === 'other_paying_for_me' ? 'Does this person pay Irish Income Tax?' : 
+                                   taxForm.who_is_paying === 'paying_for_other' ? 'Do you pay Irish Income Tax?' : 
+                                   'Do you pay Irish Income Tax?' }}
+                            </label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="taxForm.pays_irish_tax = 'paye'" 
+                                        :class="['px-3 py-2.5 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.pays_irish_tax === 'paye' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Yes - PAYE<br>
+                                    <span class="text-xs text-gray-500">(employed)</span>
+                                </button>
+                                <button @click="taxForm.pays_irish_tax = 'self_assessed'" 
+                                        :class="['px-3 py-2.5 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.pays_irish_tax === 'self_assessed' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Yes - Self-Assessment
+                                </button>
+                                <button @click="taxForm.pays_irish_tax = 'no'" 
+                                        :class="['px-3 py-2.5 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.pays_irish_tax === 'no' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    No
+                                </button>
+                                <button @click="taxForm.pays_irish_tax = 'not_sure'" 
+                                        :class="['px-3 py-2.5 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.pays_irish_tax === 'not_sure' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Not sure
+                                </button>
+                            </div>
+                            <!-- Need Help Button -->
+                            <button @click="showHelpModal = true" class="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 mt-2">
+                                <i class="ph ph-question"></i>
+                                Need help?
+                            </button>
+                        </div>
+                        
+                        <button @click="checkEligibility" 
+                                :disabled="!taxForm.who_is_paying || !taxForm.pays_irish_tax"
+                                :class="['w-full py-3 rounded-xl font-medium transition-all',
+                                         taxForm.who_is_paying && taxForm.pays_irish_tax
+                                             ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                             : 'bg-gray-200 text-gray-400 cursor-not-allowed']">
+                            Check Eligibility
+                        </button>
+                    </div>
+                    
+                    <!-- Eligibility Result - ELIGIBLE -->
+                    <div v-if="eligibilityChecked && eligibilityResult.is_eligible" class="space-y-3">
+                        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-emerald-500">
+                                    <i class="ph ph-check text-white"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-bold text-gray-900 mb-1">✅ You're Eligible for Tax Relief!</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">{{ getTreatmentDisplayName(selectedTreatment) }} (est.)</span>
+                                <span class="font-medium text-gray-900">€{{ selectedClinic ? getClinicPrice(selectedClinic).toLocaleString() : '3,200' }}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-emerald-600">Tax Relief (20%)</span>
+                                <span class="font-medium text-emerald-600">-€{{ selectedClinic ? calculateTaxRelief(selectedClinic).toLocaleString() : '640' }}</span>
+                            </div>
+                            <div class="border-t border-gray-300 my-1"></div>
+                            <div class="flex justify-between text-base font-semibold">
+                                <span class="text-gray-900">Your Net Cost</span>
+                                <span class="font-heading text-emerald-600">€{{ selectedClinic ? getClinicNetPrice(selectedClinic).toLocaleString() : '2,560' }}</span>
+                            </div>
+                        </div>
+                        
+                        <p class="text-xs text-gray-600 text-center">We'll prepare your Med 2 form automatically after booking.</p>
+                        
+                        <div class="flex items-center gap-3">
+                            <button @click="showMed2Preview = true" class="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700">
+                                <i class="ph ph-file-pdf"></i>
+                                Preview Med 2 Form
+                            </button>
+                            <button @click="resetEligibility" class="text-xs text-gray-500 underline">Check again</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Eligibility Result - NOT ELIGIBLE -->
+                    <div v-if="eligibilityChecked && !eligibilityResult.is_eligible" class="space-y-3">
+                        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-amber-500">
+                                    <i class="ph ph-warning text-white"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-bold text-gray-900 mb-1">❌ Tax Relief Not Available</p>
+                                    <p class="text-xs text-gray-600">{{ eligibilityResult.message }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div v-if="eligibilityResult.strategy_tip" class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                            <p class="text-xs font-semibold text-blue-800 mb-2">💡 Strategy Tip:</p>
+                            <p class="text-xs text-blue-700">{{ eligibilityResult.strategy_tip }}</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 gap-2">
+                            <button @click="resetEligibility" class="py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600">
+                                Change Who's Paying
+                            </button>
+                            <button @click="eligibilityChecked = false; med2Active = false" class="py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50">
+                                Continue Without Relief
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Post-Consultation Warning (ORIGINAL) -->
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <div class="flex items-start gap-3">
+                        <i class="ph ph-info text-amber-500 text-lg flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <p class="text-sm font-medium text-amber-800">Important: Prices are estimates</p>
+                            <p class="text-xs text-amber-700 mt-1">Final treatment costs will be confirmed after your consultation. The dentist will assess your specific needs and provide an accurate quote.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Clinics List (ORIGINAL WITH REVIEWS) -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-heading font-semibold text-gray-900">
+                            <i class="ph ph-map-pin text-emerald-500 mr-1"></i>
+                            Clondalkin Clinics
+                        </h3>
+                        <span class="text-sm text-gray-500">{{ clinics.length }} options</span>
+                    </div>
+                    
+                    <div v-if="eligibilityResult.is_eligible && med2Active" class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-3">
+                        <p class="text-xs text-emerald-700">
+                            <strong>Your treatment:</strong> {{ getTreatmentDisplayName(selectedTreatment) }}<br>
+                            <strong>Tax relief:</strong> €{{ selectedClinic ? calculateTaxRelief(selectedClinic).toLocaleString() : '640' }} (eligible ✓)
+                        </p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div v-for="clinic in clinics" :key="clinic.id" 
+                             class="clinic-card bg-white rounded-2xl shadow-card p-4">
+                            
+                            <!-- Clinic Header -->
+                            <div class="flex items-start justify-between mb-3">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <h4 class="font-heading font-semibold text-gray-900">{{ clinic.clinic_name }}</h4>
+                                        <span v-if="clinic.verified" class="text-emerald-500">
+                                            <i class="ph-fill ph-seal-check"></i>
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-500">
+                                        <i class="ph ph-map-pin text-emerald-500"></i>
+                                        {{ clinic.location }}
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="flex items-center gap-1 text-amber-500">
+                                        <i class="ph-fill ph-star text-sm"></i>
+                                        <span class="text-sm font-semibold text-gray-900">{{ clinic.rating }}</span>
+                                    </div>
+                                    <p class="text-[10px] text-gray-400">({{ clinic.review_count }} reviews)</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Review (ORIGINAL) -->
+                            <div class="bg-gray-50 rounded-lg p-2 mb-3">
+                                <p class="text-xs text-gray-600 italic">"{{ clinic.top_review }}"</p>
+                            </div>
+                            
+                            <!-- Pricing -->
+                            <div class="mb-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">{{ getTreatmentDisplayName(selectedTreatment) }}:</span>
+                                    <span class="font-heading font-bold text-gray-900">€{{ getClinicPrice(clinic).toLocaleString() }}</span>
+                                </div>
+                                <div v-if="med2Active && eligibilityResult.is_eligible" class="flex justify-between items-center mt-1">
+                                    <span class="text-sm text-emerald-600 font-semibold">After relief:</span>
+                                    <span class="font-heading font-bold text-emerald-600">€{{ getClinicNetPrice(clinic).toLocaleString() }}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Time Slots -->
+                            <div class="pt-3 border-t border-gray-100">
+                                <p class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-2">Available Times</p>
+                                <div class="flex flex-wrap gap-2 mb-3">
+                                    <button v-for="slot in clinic.available_slots" :key="slot"
+                                            @click="selectSlot(clinic, slot)"
+                                            :class="[
+                                                'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
+                                                clinic.selected_slot === slot 
+                                                    ? 'bg-emerald-500 text-white border-emerald-500' 
+                                                    : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-emerald-300'
+                                            ]">
+                                        {{ slot }}
+                                    </button>
+                                </div>
+                                
+                                <button @click="startBooking(clinic)" 
+                                        :disabled="!clinic.selected_slot"
+                                        :class="[
+                                            'w-full py-3 rounded-xl font-semibold transition-all',
+                                            clinic.selected_slot 
+                                                ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
+                                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        ]">
+                                    {{ clinic.selected_slot ? 'Book Consultation' : 'Select a time slot' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- STEP 3: BOOKING FORM (ORIGINAL) -->
+            <!-- ============================================ -->
+            <div v-if="showForm && !showPayment" class="animate-fade-in space-y-4">
+                
+                <!-- Back Button -->
+                <button @click="showForm = false" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
+                    <i class="ph ph-arrow-left"></i>
+                    <span class="text-sm">Back to clinics</span>
+                </button>
+                
+                <!-- Form Card -->
+                <div class="bg-white rounded-2xl shadow-soft p-5">
+                    <h3 class="font-heading font-bold text-xl text-gray-900 mb-1">Your Details</h3>
+                    <p class="text-sm text-gray-600 mb-4">Booking at {{ selectedClinic?.clinic_name }}</p>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Full Name *</label>
+                            <input v-model="bookingData.name" type="text" placeholder="John Smith"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Phone *</label>
+                            <input v-model="bookingData.phone" type="tel" placeholder="087 123 4567"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Email</label>
+                            <input v-model="bookingData.email" type="email" placeholder="john@example.com"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">PPSN * (for Med 2)</label>
+                            <input v-model="bookingData.ppsn" type="text" placeholder="1234567T"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 uppercase">
+                            <p class="text-[10px] text-gray-400 mt-1">Required for tax relief claim</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Address *</label>
+                            <textarea v-model="bookingData.address" rows="2" placeholder="123 Main Street, Dublin 22"
+                                      class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+                        </div>
+                        
+                        <!-- Payer Details (if someone else paying) -->
+                        <div v-if="taxForm.who_is_paying === 'other_paying_for_me'" class="bg-amber-50 rounded-xl p-4 space-y-3">
+                            <h4 class="text-sm font-semibold text-amber-800">
+                                <i class="ph ph-info mr-1"></i>Payer Details (for Med 2)
+                            </h4>
+                            <input v-model="bookingData.payer_ppsn" type="text" placeholder="Payer's PPSN"
+                                   class="w-full px-3 py-2 rounded-lg border border-amber-200 text-sm focus:outline-none focus:border-amber-400 uppercase">
+                            <textarea v-model="bookingData.payer_address" rows="2" placeholder="Payer's address"
+                                      class="w-full px-3 py-2 rounded-lg border border-amber-200 text-sm focus:outline-none focus:border-amber-400 resize-none"></textarea>
+                        </div>
+                        
+                        <!-- Additional Interests -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Also interested in:</label>
+                            <div class="flex flex-wrap gap-2">
+                                <label v-for="(checked, interest) in bookingData.interests" :key="interest"
+                                       class="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                                    <input type="checkbox" v-model="bookingData.interests[interest]" class="accent-emerald-500">
+                                    <span class="text-sm text-gray-700 capitalize">{{ interest }}</span>
+                                </label>
+                            </div>
+                            <!-- Whitening Warning -->
+                            <div v-if="bookingData.interests.whitening" class="mt-2 p-2 bg-amber-50 rounded-lg border border-amber-200">
+                                <p class="text-xs text-amber-700">
+                                    <i class="ph ph-warning mr-1"></i>
+                                    <strong>Note:</strong> Whitening does not qualify for Med 2 tax relief.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Validation Errors -->
+                    <div v-if="validationErrors.length" class="mt-4 p-3 bg-red-50 rounded-xl">
+                        <p v-for="error in validationErrors" :key="error" class="text-sm text-red-600">
+                            <i class="ph ph-warning mr-1"></i>{{ error }}
+                        </p>
+                    </div>
+                    
+                    <!-- Continue to Payment -->
+                    <button @click="validateAndProceed"
+                            :disabled="bookingInProgress"
+                            class="w-full mt-4 py-4 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-all disabled:opacity-50">
+                        {{ bookingInProgress ? 'Processing...' : 'Confirm Booking' }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- STEP 4: PAYMENT (ORIGINAL WITH DROPDOWN) -->
+            <!-- ============================================ -->
+            <div v-if="showPayment" class="animate-fade-in space-y-4">
+                
+                <!-- Back Button -->
+                <button @click="showPayment = false" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
+                    <i class="ph ph-arrow-left"></i>
+                    <span class="text-sm">Back to details</span>
+                </button>
+                
+                <!-- Payment Card -->
+                <div class="bg-white rounded-2xl shadow-soft p-5">
+                    <!-- Header -->
+                    <div class="mb-6">
+                        <h3 class="font-heading font-bold text-xl text-gray-900 mb-1">Secure Your Consultation</h3>
+                        <p class="text-sm text-gray-600">€50 deposit at {{ selectedClinic.clinic_name }}</p>
+                    </div>
+                    
+                    <!-- Cost Breakdown -->
+                    <div class="bg-gray-50 rounded-xl p-4 mb-4 space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Estimated Treatment Cost:</span>
+                            <span class="font-medium text-gray-900">€{{ getClinicPrice(selectedClinic).toLocaleString() }}</span>
+                        </div>
+                        <div v-if="med2Active && eligibilityResult.is_eligible" class="flex justify-between text-sm">
+                            <span class="text-emerald-600">Med 2 Tax Relief:</span>
+                            <span class="font-medium text-emerald-600">-€{{ calculateTaxRelief(selectedClinic).toLocaleString() }}</span>
+                        </div>
+                        <div class="border-t border-gray-300 my-2"></div>
+                        <div class="flex justify-between text-base font-semibold">
+                            <span class="text-gray-900">Estimated Net Cost:</span>
+                            <span class="font-heading text-emerald-600">€{{ getClinicNetPrice(selectedClinic).toLocaleString() }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Deposit Explanation (COLLAPSIBLE) -->
+                    <div class="bg-gray-50 rounded-xl mb-4 overflow-hidden">
+                        <button @click="showDepositInfo = !showDepositInfo" 
+                                class="w-full px-4 py-3 flex items-center justify-between text-left">
+                            <h4 class="text-sm font-semibold text-gray-900">How the €50 Deposit Works</h4>
+                            <i :class="['ph text-gray-500 transition-transform', showDepositInfo ? 'ph-caret-up' : 'ph-caret-down']"></i>
+                        </button>
+                        <div v-if="showDepositInfo" class="px-4 pb-4">
+                            <ul class="text-xs text-gray-600 space-y-1.5">
+                                <li class="flex items-start gap-2">
+                                    <i class="ph ph-check text-emerald-500 mt-0.5 flex-shrink-0"></i>
+                                    <span>Secures your consultation slot</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <i class="ph ph-check text-emerald-500 mt-0.5 flex-shrink-0"></i>
+                                    <span>Deducted from your final treatment cost</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <i class="ph ph-check text-emerald-500 mt-0.5 flex-shrink-0"></i>
+                                    <span>Fully refundable if you cancel 24h+ in advance</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <i class="ph ph-check text-emerald-500 mt-0.5 flex-shrink-0"></i>
+                                    <span>Includes initial consultation</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Fields -->
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Card Number</label>
+                            <input v-model="paymentData.cardNumber" @input="formatCardNumber" type="text" placeholder="1234 5678 9012 3456"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Expiry Date</label>
+                                <input v-model="paymentData.expiry" @input="formatExpiry" type="text" placeholder="MM/YY"
+                                       class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">CVV</label>
+                                <input v-model="paymentData.cvv" type="text" maxlength="3" placeholder="123"
+                                       class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pay Button -->
+                    <button @click="processPayment" 
+                            :disabled="!isPaymentFormValid || paymentInProgress"
+                            :class="[
+                                'w-full mt-4 py-4 rounded-xl font-semibold text-lg transition-all',
+                                isPaymentFormValid && !paymentInProgress
+                                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-200'
+                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            ]">
+                        <span v-if="paymentInProgress">Processing...</span>
+                        <span v-else><i class="ph ph-lock-simple mr-2"></i>Pay €50 Deposit</span>
+                    </button>
+                    
+                    <!-- Security Note -->
+                    <div class="flex items-center justify-center gap-1 mt-3 text-xs text-gray-400">
+                        <i class="ph ph-lock-simple"></i>
+                        <span>Payments secured by Stripe</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- STEP 5: CONFIRMATION (ORIGINAL) -->
+            <!-- ============================================ -->
+            <div v-if="bookingComplete" class="animate-fade-in space-y-4">
+                <div class="bg-white rounded-2xl shadow-soft p-6 text-center">
+                    <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="ph ph-check-circle text-4xl text-emerald-500"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-2">Booking Confirmed!</h2>
+                    <p class="text-sm text-gray-600 mb-4">Reference: {{ bookingReference }}</p>
+                    
+                    <div class="bg-gray-50 rounded-xl p-4 text-left mb-4">
+                        <p class="text-sm text-gray-600"><strong>Clinic:</strong> {{ confirmationData.clinic_name }}</p>
+                        <p class="text-sm text-gray-600"><strong>Address:</strong> {{ confirmationData.clinic_address }}</p>
+                        <p class="text-sm text-gray-600"><strong>Time:</strong> {{ confirmationData.appointment_time }}</p>
+                        <p class="text-sm text-gray-600"><strong>Phone:</strong> {{ confirmationData.clinic_phone }}</p>
+                    </div>
+                    
+                    <div v-if="med2Active && eligibilityResult.is_eligible" class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-left mb-4">
+                        <p class="text-sm font-semibold text-emerald-800 mb-2">🧾 Your Med 2 Form</p>
+                        <p class="text-xs text-emerald-700">Your pre-filled Med 2 form is ready. The dentist will sign it after your treatment.</p>
+                        <a v-if="confirmationData.pdf_url" :href="confirmationData.pdf_url" target="_blank"
+                           class="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 mt-2">
+                            <i class="ph ph-file-pdf"></i>
+                            Download Med 2 Form
+                        </a>
+                    </div>
+                    
+                    <button @click="startOver" class="w-full py-3 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- HELP MODAL -->
+        <!-- ============================================ -->
+        <div v-if="showHelpModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto">
+                <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-900">Understanding Med 2</h3>
+                    <button @click="showHelpModal = false" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                        <i class="ph ph-x text-gray-500"></i>
+                    </button>
+                </div>
+                <div class="p-4 space-y-4 text-sm text-gray-600">
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-1">What is Med 2?</h4>
+                        <p>Med 2 is an Irish tax relief form that lets you claim back 20% of qualifying dental expenses.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-1">Who can claim?</h4>
+                        <p>Anyone who pays Irish income tax (PAYE or self-assessed) can claim relief on their own treatment or treatment they pay for on behalf of family members.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-1">What treatments qualify?</h4>
+                        <p>Most dental treatments qualify including Invisalign, veneers, and composite bonding. Teeth whitening does NOT qualify.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-1">How do I claim?</h4>
+                        <p>SmileAgent generates your Med 2 form automatically. After treatment, your dentist signs it digitally, and you submit it to Revenue via myAccount.</p>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-gray-100">
+    		<a 
+        	href="https://www.revenue.ie/en/personal-tax-credits-reliefs-and-exemptions/health-and-age/health-expenses/dental-expenses.aspx" 
+        	target="_blank"
+        	@click="showHelpModal = false"
+        	class="w-full py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 inline-block text-center"
+    	>
+        See more on Revenue.ie
+    </a>
+</div>
+
+        </div>
+
+        <!-- ============================================ -->
+        <!-- MED 2 PREVIEW MODAL -->
+        <!-- ============================================ -->
+        <div v-if="showMed2Preview" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto">
+                <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-900">Med 2 Form Preview</h3>
+                    <button @click="showMed2Preview = false" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                        <i class="ph ph-x text-gray-500"></i>
+                    </button>
+                </div>
+                <div class="p-4">
+                    <div class="border-2 border-gray-200 rounded-xl p-4 bg-gray-50 space-y-3">
+                        <div class="text-center border-b border-gray-300 pb-2">
+                            <p class="text-xs text-gray-500">FORM</p>
+                            <p class="text-lg font-bold text-gray-900">MED 2</p>
+                            <p class="text-[10px] text-gray-500">Dental Expenses</p>
+                        </div>
+                        <div class="space-y-2 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Patient Name:</span>
+                                <span class="font-medium text-gray-900">{{ bookingData.name || '[Your Name]' }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">PPSN:</span>
+                                <span class="font-medium text-gray-900">{{ bookingData.ppsn || '[Your PPSN]' }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Treatment:</span>
+                                <span class="font-medium text-gray-900">{{ getTreatmentDisplayName(selectedTreatment) }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Amount:</span>
+                                <span class="font-medium text-gray-900">€{{ selectedClinic ? getClinicPrice(selectedClinic).toLocaleString() : '3,200' }}</span>
+                            </div>
+                            <div class="flex justify-between pt-2 border-t border-gray-300">
+                                <span class="text-emerald-600 font-medium">Tax Relief (20%):</span>
+                                <span class="font-bold text-emerald-600">€{{ selectedClinic ? calculateTaxRelief(selectedClinic).toLocaleString() : '640' }}</span>
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-gray-300">
+                            <p class="text-[10px] text-gray-400 text-center">Dentist signature will be added after treatment</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-gray-100">
+                    <button @click="showMed2Preview = false" class="w-full py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600">
+                        Got It
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+const { createApp } = Vue;
+
+createApp({
+    data() {
+        return {
+            apiBase: window.location.origin,
+            
+            // Mode Selection
+            appMode: null,
+            
+            // Toast
+            toasts: [],
+            toastIdCounter: 0,
+            
+            // ========== EMERGENCY MODE ==========
+            triageStep: 0,
+            selectedRedFlags: [],
+            redFlags: [
+                { id: 'breathing_difficulty', label: 'Difficulty breathing or swallowing', icon: '😮‍💨' },
+                { id: 'swelling_spreading', label: 'Swelling spreading to eye, neck, or under tongue', icon: '🔴' },
+                { id: 'fever_with_swelling', label: 'Fever with facial swelling', icon: '🤒' },
+                { id: 'uncontrolled_bleeding', label: 'Bleeding that won\'t stop (20+ minutes)', icon: '🩸' }
+            ],
+            triageData: { painLevel: null, painWorsening: false, sleepDisrupted: false, chiefComplaint: '', symptomDuration: 24 },
+            triageLoading: false,
+            triageResult: null,
+            userLocation: { lat: 53.3205, lng: -6.3947 },
+            emergencyClinics: [],
+            paymentFilter: 'private',
+            selectedEmergencyClinic: null,
+            emergencyBooking: { name: '', phone: '', contactPreference: 'sms', mcLast4: '', sensitiveToTemp: false, previousTreatment: '', gdprConsent: false },
+            emergencyBookingLoading: false,
+            emergencyBriefId: null,
+            
+            // ========== COSMETIC MODE ==========
+            loading: false,
+            result: null,
+            usedAI: false,
+            showForm: false,
+            showPayment: false,
+            bookingComplete: false,
+            dragActive: false,
+            showMed2Preview: false,
+            showHelpModal: false,
+            showDepositInfo: false,
+            
+            // Photo
+            previewUrl: null,
+            photoFile: null,
+            photoId: null,
+            savePhotoConsent: true,
+            
+            // Treatment
+            selectedTreatment: null,
+            treatments: {
+                invisalign: { name: 'Invisalign', display_name: 'Invisalign', med2_eligible: true },
+                composite_bonding: { name: 'Composite Bonding', display_name: 'Composite Bonding', med2_eligible: true },
+                veneers: { name: 'Veneers', display_name: 'Veneers', med2_eligible: true },
+                whitening: { name: 'Whitening', display_name: 'Teeth Whitening', med2_eligible: false }
+            },
+            
+            // Med 2 / Tax
+            med2Active: true,
+            eligibilityChecked: false,
+            eligibilityResult: { is_eligible: true, message: '', strategy_tip: null },
+            taxForm: { who_is_paying: '', pays_irish_tax: '', payer_name: '', payer_relationship: '' },
+            
+            // Clinics
+            clinics: [],
+            selectedClinic: null,
+            
+            // Booking Form
+            bookingData: {
+                name: '', phone: '', email: '', ppsn: '', address: '',
+                payer_ppsn: '', payer_address: '',
+                interests: { whitening: false, bonding: false, implants: false, checkup: false }
+            },
+            
+            // Payment
+            paymentData: { cardNumber: '', expiry: '', cvv: '' },
+            
+            // Progress
+            statusMessage: 'Initialising...',
+            scanProgress: 0,
+            bookingInProgress: false,
+            paymentInProgress: false,
+            validationErrors: [],
+            
+            // Confirmation
+            bookingReference: '',
+            confirmationData: {}
+        };
+    },
+    
+    computed: {
+        isEmergencyMode() { return this.appMode === 'emergency'; },
+        isPaymentFormValid() {
+            return this.paymentData.cardNumber.replace(/\s/g, '').length === 16 &&
+                   this.paymentData.expiry.length === 5 &&
+                   this.paymentData.cvv.length === 3;
+        }
+    },
+    
+    mounted() {
+        this.loadClinics();
+        this.getUserLocation();
+        console.log('🦷 SmileAgent initialised');
+    },
+    
+    methods: {
+        // ========== NAVIGATION ==========
+        goHome() {
+            this.appMode = null;
+            this.triageStep = 0;
+            this.selectedRedFlags = [];
+            this.triageData = { painLevel: null, painWorsening: false, sleepDisrupted: false, chiefComplaint: '', symptomDuration: 24 };
+            this.triageResult = null;
+            this.emergencyClinics = [];
+            this.result = null;
+            this.showForm = false;
+            this.showPayment = false;
+            this.bookingComplete = false;
+        },
+        
+        startEmergencyMode() { this.appMode = 'emergency'; this.triageStep = 1; },
+        startCosmeticMode() { this.appMode = 'cosmetic'; },
+        
+        goBackTriage() {
+            if (this.triageStep === 1) this.goHome();
+            else if (this.triageStep === 2) this.triageStep = 1;
+            else if (this.triageStep === 3) this.triageStep = 2;
+        },
+        
+        // ========== TOAST ==========
+        showToast(message, type = 'info', duration = 4000) {
+            const id = ++this.toastIdCounter;
+            this.toasts.push({ id, message, type, exiting: false });
+            setTimeout(() => {
+                const idx = this.toasts.findIndex(t => t.id === id);
+                if (idx > -1) {
+                    this.toasts[idx].exiting = true;
+                    setTimeout(() => this.toasts.splice(this.toasts.findIndex(t => t.id === id), 1), 300);
+                }
+            }, duration);
+        },
+        
+        // ========== GEOLOCATION ==========
+        getUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    pos => { this.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude }; },
+                    () => { console.log('Using default location'); },
+                    { enableHighAccuracy: false, timeout: 5000 }
+                );
+            }
+        },
+        
+        // ========== EMERGENCY TRIAGE ==========
+        checkRedFlags() {
+            if (this.selectedRedFlags.length > 0) this.triageStep = 'ae_redirect';
+            else this.triageStep = 2;
+        },
+        
+        findNearestAE() {
+            window.open('https://maps.google.com/maps?q=hospital+emergency+department+near+me', '_blank');
+        },
+        
+        async submitTriage() {
+            this.triageLoading = true;
+            try {
+                const response = await fetch(`${this.apiBase}/api/triage/assess`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        red_flags: this.selectedRedFlags,
+                        pain_level: this.triageData.painLevel,
+                        pain_worsening: this.triageData.painWorsening,
+                        sleep_disrupted: this.triageData.sleepDisrupted,
+                        symptom_duration_hours: this.triageData.symptomDuration,
+                        chief_complaint: this.triageData.chiefComplaint,
+                        visible_damage: false
+                    })
+                });
+                this.triageResult = await response.json();
+                await this.searchEmergencyClinics();
+                this.triageStep = 'results';
+            } catch (err) {
+                console.error(err);
+                this.showToast('Something went wrong', 'error');
+            } finally {
+                this.triageLoading = false;
+            }
+        },
+        
+        async searchEmergencyClinics() {
+            try {
+                const response = await fetch(`${this.apiBase}/api/clinics/emergency`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        latitude: this.userLocation.lat,
+                        longitude: this.userLocation.lng,
+                        urgency: this.triageResult?.urgency || 'green',
+                        medical_card_only: this.paymentFilter === 'medical_card',
+                        prsi_only: this.paymentFilter === 'prsi',
+                        max_distance_km: 15
+                    })
+                });
+                const data = await response.json();
+                this.emergencyClinics = data.clinics || [];
+            } catch (err) { console.error(err); }
+        },
+        
+        setPaymentFilter(filter) { this.paymentFilter = filter; this.searchEmergencyClinics(); },
+        selectEmergencyClinic(clinic) { this.selectedEmergencyClinic = clinic; this.triageStep = 'booking'; },
+        
+        async submitEmergencyBooking() {
+            if (!this.emergencyBooking.gdprConsent) {
+                this.showToast('Please accept data processing consent', 'error');
+                return;
+            }
+            this.emergencyBookingLoading = true;
+            try {
+                const response = await fetch(`${this.apiBase}/api/briefs/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        patient_name: this.emergencyBooking.name || null,
+                        patient_phone: this.emergencyBooking.phone,
+                        contact_preference: this.emergencyBooking.contactPreference,
+                        chief_complaint: this.triageData.chiefComplaint,
+                        pain_level: this.triageData.painLevel,
+                        pain_worsening: this.triageData.painWorsening,
+                        urgency: this.triageResult.urgency,
+                        urgency_display: this.triageResult.urgency_display,
+                        symptom_duration_hours: this.triageData.symptomDuration,
+                        sensitive_to_temp: this.emergencyBooking.sensitiveToTemp || null,
+                        previous_treatment: this.emergencyBooking.previousTreatment || null,
+                        payment_type: this.paymentFilter,
+                        medical_card_last4: this.emergencyBooking.mcLast4 || null,
+                        requested_date: 'Today',
+                        requested_time_preference: 'any',
+                        clinic_id: this.selectedEmergencyClinic.id,
+                        clinic_name: this.selectedEmergencyClinic.clinic_name
+                    })
+                });
+                const brief = await response.json();
+                this.emergencyBriefId = brief.brief_id;
+      		await fetch(`${this.apiBase}/api/consent/log`, {
+            	method: 'POST',
+            	headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_identifier: this.emergencyBooking.phone,
+                consent_type: 'emergency_triage',
+                consent_given: true,
+                consent_version: 'v1.0'
+            })
+        });
+
+                this.triageStep = 'confirmed';
+                this.showToast('Request sent to clinic!', 'success');
+            } catch (err) {
+                console.error(err);
+                this.showToast('Failed to send request', 'error');
+            } finally {
+                this.emergencyBookingLoading = false;
+            }
+        },
+        
+        // ========== COSMETIC: TREATMENT ==========
+        selectTreatment(key) { this.selectedTreatment = key; this.loadClinics(); },
+        
+        skipToTreatment(key) {
+            this.selectedTreatment = key;
+            this.usedAI = false;
+            this.med2Active = false;
+            this.loadClinics();
+            this.result = { status: 'success', photo_id: null, saved_for_med2: false, diagnosis: null };
+            this.showToast('Clinics loaded - check your tax eligibility if needed', 'info');
+        },
+        
+        skipToCheckup() {
+            this.appMode = 'cosmetic';
+            this.selectedTreatment = null;
+            this.usedAI = false;
+            this.med2Active = false;
+            this.loadClinics();
+            this.result = { status: 'success', photo_id: null, saved_for_med2: false, diagnosis: null };
+            this.showToast('Select a clinic for your checkup', 'info');
+        },
+        
+        getTreatmentDisplayName(key) { return this.treatments[key]?.display_name || key; },
+        
+        // ========== COSMETIC: PHOTO ==========
+        triggerUpload() { this.$refs.fileInput.click(); },
+        
+        handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) this.processFile(file);
+        },
+        
+        handleDrop(event) {
+            this.dragActive = false;
+            const file = event.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) this.processFile(file);
+        },
+        
+        processFile(file) {
+            if (file.size > 10 * 1024 * 1024) {
+                this.showToast('File too large (max 10MB)', 'error');
+                return;
+            }
+            this.photoFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => { this.previewUrl = e.target.result; };
+            reader.readAsDataURL(file);
+        },
+        
+        clearPhoto() {
+            this.previewUrl = null;
+            this.photoFile = null;
+            this.photoId = null;
+            this.$refs.fileInput.value = '';
+        },
+        
+        // ========== COSMETIC: CLINICS ==========
+        async loadClinics() {
+            try {
+                const url = this.selectedTreatment 
+                    ? `${this.apiBase}/api/clinics?treatment=${this.selectedTreatment}`
+                    : `${this.apiBase}/api/clinics`;
+                const response = await fetch(url);
+                const data = await response.json();
+                this.clinics = data.clinics.map(c => ({ ...c, selected_slot: null }));
+            } catch (err) { console.error('Failed to load clinics:', err); }
+        },
+        
+        getClinicPrice(clinic) {
+            if (this.selectedTreatment && clinic.price) return clinic.price;
+            if (this.selectedTreatment && clinic.pricing) return clinic.pricing[this.selectedTreatment] || 0;
+            return 0;
+        },
+        
+        calculateTaxRelief(clinic) { return Math.round(this.getClinicPrice(clinic) * 0.2); },
+        
+        getClinicNetPrice(clinic) {
+            const gross = this.getClinicPrice(clinic);
+            if (this.med2Active && this.eligibilityResult.is_eligible) return Math.round(gross * 0.8);
+            return gross;
+        },
+        
+        selectSlot(clinic, slot) { clinic.selected_slot = slot; },
+        
+        // ========== COSMETIC: AI ANALYSIS ==========
+        async analyseSmile() {
+            if (!this.photoFile || !this.selectedTreatment) return;
+            
+            this.loading = true;
+            this.scanProgress = 0;
+            this.usedAI = true;
+            
+            const messages = [
+                'Initialising AI...',
+                'Detecting smile...',
+                'Analysing tooth alignment...',
+                'Checking spacing...',
+                'Evaluating treatment options...',
+                'Calculating costs...',
+                'Finding best clinics...',
+                'Complete!'
+            ];
+            
+            let msgIndex = 0;
+            const interval = setInterval(() => {
+                if (msgIndex < messages.length) {
+                    this.statusMessage = messages[msgIndex];
+                    this.scanProgress = Math.min(100, ((msgIndex + 1) / messages.length) * 100);
+                    msgIndex++;
+                }
+            }, 400);
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', this.photoFile);
+                formData.append('save_for_med2', this.savePhotoConsent);
+                
+                const response = await fetch(`${this.apiBase}/api/analyze-smile`, { method: 'POST', body: formData });
+                if (!response.ok) throw new Error('Analysis failed');
+                
+                const data = await response.json();
+                this.photoId = data.photo_id;
+                
+                await new Promise(resolve => setTimeout(resolve, 2500));
+                clearInterval(interval);
+                
+                this.result = data;
+                this.showToast('Analysis complete!', 'success');
+            } catch (err) {
+                clearInterval(interval);
+                console.error('Analysis error:', err);
+                this.showToast('Analysis failed. Please try again.', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // ========== COSMETIC: TAX ELIGIBILITY ==========
+        async checkEligibility() {
+            try {
+                const response = await fetch(`${this.apiBase}/api/check-eligibility`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.taxForm)
+                });
+                const data = await response.json();
+                this.eligibilityResult = data;
+                this.eligibilityChecked = true;
+                
+                if (data.is_eligible) this.showToast('Great news! You qualify for 20% tax relief', 'success');
+                else this.showToast('Tax relief not available with current details', 'warning');
+            } catch (err) {
+                console.error('Eligibility check failed:', err);
+                this.showToast('Could not check eligibility', 'error');
+            }
+        },
+        
+        resetEligibility() {
+            this.eligibilityChecked = false;
+            this.taxForm = { who_is_paying: '', pays_irish_tax: '', payer_name: '', payer_relationship: '' };
+        },
+        
+        // ========== COSMETIC: BOOKING ==========
+        startBooking(clinic) {
+            this.selectedClinic = clinic;
+            this.showForm = true;
+            if (this.taxForm.payer_name) this.bookingData.payer_name = this.taxForm.payer_name;
+        },
+        
+        validateAndProceed() {
+            this.validationErrors = [];
+            
+            if (!this.bookingData.name || this.bookingData.name.length < 2) this.validationErrors.push('Please enter your full name');
+            if (!this.bookingData.phone) this.validationErrors.push('Please enter your phone number');
+            if (!this.bookingData.ppsn || !/^\d{7}[A-Za-z]{1,2}$/.test(this.bookingData.ppsn.replace(/\s/g, ''))) this.validationErrors.push('Please enter a valid PPSN (7 digits + 1-2 letters)');
+            if (!this.bookingData.address || this.bookingData.address.length < 10) this.validationErrors.push('Please enter your full address');
+            
+            // Skip payment step for validation phase - go straight to booking
+            if (this.validationErrors.length === 0) this.processPayment();
+        },
+        
+        // ========== COSMETIC: PAYMENT ==========
+        formatCardNumber(event) {
+            let value = event.target.value.replace(/\s/g, '');
+            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+            this.paymentData.cardNumber = formattedValue.substring(0, 19);
+        },
+        
+        formatExpiry(event) {
+            let value = event.target.value.replace(/\D/g, '');
+            if (value.length >= 2) value = value.substring(0, 2) + '/' + value.substring(2, 4);
+            this.paymentData.expiry = value;
+        },
+        
+        async processPayment() {
+            this.paymentInProgress = true;
+            
+            try {
+                const interests = Object.entries(this.bookingData.interests)
+                    .filter(([_, checked]) => checked)
+                    .map(([interest]) => interest);
+                
+                const bookingPayload = {
+                    name: this.bookingData.name,
+                    phone: this.bookingData.phone,
+                    email: this.bookingData.email || null,
+                    ppsn: this.bookingData.ppsn.toUpperCase().replace(/\s/g, ''),
+                    address: this.bookingData.address,
+                    clinic_id: this.selectedClinic.id,
+                    clinic_name: this.selectedClinic.clinic_name,
+                    treatment: this.selectedTreatment,
+                    selected_slot: this.selectedClinic.selected_slot,
+                    photo_id: this.photoId,
+                    who_is_paying: this.taxForm.who_is_paying || 'self',
+                    pays_irish_tax: this.taxForm.pays_irish_tax || 'paye',
+                    is_eligible_for_relief: this.eligibilityResult.is_eligible,
+                    payer_name: this.taxForm.payer_name || null,
+                    payer_ppsn: this.bookingData.payer_ppsn || null,
+                    payer_address: this.bookingData.payer_address || null,
+                    payer_relationship: this.taxForm.payer_relationship || null,
+                    additional_interests: interests,
+                    estimated_cost: this.getClinicPrice(this.selectedClinic),
+                    is_emergency: false
+                };
+                
+                const response = await fetch(`${this.apiBase}/api/book-appointment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bookingPayload)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Booking failed');
+                }
+                
+                const data = await response.json();
+
+		await fetch(`${this.apiBase}/api/consent/log`, {
+    			method: 'POST',
+    			headers: { 'Content-Type': 'application/json' },
+    			body: JSON.stringify({
+        			user_identifier: this.bookingData.email || this.bookingData.phone,
+        			consent_type: this.med2Active ? 'cosmetic_booking_with_med2' : 'cosmetic_booking',
+       				consent_given: true,
+        			consent_version: 'v1.0'
+  			  })
+		});
+
+                
+                this.bookingReference = data.booking_id;
+                this.confirmationData = data;
+                this.bookingComplete = true;
+                this.showPayment = false;
+                this.showForm = false;
+                
+                this.showToast('Booking confirmed! 🎉', 'success');
+            } catch (err) {
+                console.error('Booking error:', err);
+                this.showToast(err.message || 'Booking failed. Please try again.', 'error');
+            } finally {
+                this.paymentInProgress = false;
+            }
+        },
+        
+        // ========== RESET ==========
+        startOver() {
+            this.result = null;
+            this.showForm = false;
+            this.showPayment = false;
+            this.bookingComplete = false;
+            this.showMed2Preview = false;
+            this.showHelpModal = false;
+            this.previewUrl = null;
+            this.photoFile = null;
+            this.photoId = null;
+            this.selectedTreatment = null;
+            this.selectedClinic = null;
+            this.usedAI = false;
+            this.eligibilityChecked = false;
+            this.eligibilityResult = { is_eligible: true, message: '', strategy_tip: null };
+            this.taxForm = { who_is_paying: '', pays_irish_tax: '', payer_name: '', payer_relationship: '' };
+            this.bookingData = {
+                name: '', phone: '', email: '', ppsn: '', address: '',
+                payer_ppsn: '', payer_address: '',
+                interests: { whitening: false, bonding: false, implants: false, checkup: false }
+            };
+            this.paymentData = { cardNumber: '', expiry: '', cvv: '' };
+            this.validationErrors = [];
+            this.bookingReference = '';
+            this.confirmationData = {};
+            this.appMode = null;
+            this.loadClinics();
+        }
+    }
+}).mount('#app');
+</script>
+
+</body>
+</html>
