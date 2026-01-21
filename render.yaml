@@ -1,0 +1,23 @@
+# ============================================
+# RENDER.COM DEPLOYMENT CONFIG
+# ============================================
+# This enables one-click deployment on Render
+# https://render.com/docs/blueprint-spec
+# ============================================
+
+services:
+  - type: web
+    name: smileagent-api
+    env: python
+    region: frankfurt
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DEBUG
+        value: false
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false  # Set manually after frontend deploy
