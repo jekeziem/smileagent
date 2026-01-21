@@ -1,7 +1,5 @@
 # SmileAgent 🦷
 
-> AI-powered dental aggregator for the Irish market. Emergency triage, Medical Card filtering, Med 2 tax automation.
-
 ## Quick Start (Local Development)
 
 ```bash
@@ -22,29 +20,18 @@ python main.py
 
 ```
 smileagent/
-├── main.py              # FastAPI backend
-├── index.html           # Vue.js frontend (single file)
-├── requirements.txt     # Python dependencies
-├── .env.example         # Environment template (commit this)
-├── .env                 # Your secrets (DO NOT commit)
+├── main.py             
+├── index.html           
+├── requirements.txt     
+├── .env.example         
+├── .env    
 ├── .gitignore          
-├── render.yaml          # Render.com deployment config
-├── vercel.json          # Vercel deployment config
+├── render.yaml          
+├── vercel.json         
 └── README.md
 ```
 
-## Deployment
 
-### Backend (Render.com - Free)
-1. Push to GitHub
-2. Connect repo on render.com
-3. Set environment variables
-4. Deploy
-
-### Frontend (Vercel - Free)
-1. Update `apiBase` in index.html to your Render URL
-2. Connect repo on vercel.com
-3. Deploy
 
 ## Environment Variables
 
@@ -59,14 +46,6 @@ Generate encryption key:
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-## Features
-
-- ✅ Emergency Triage (Manchester Triage adapted)
-- ✅ Medical Card / PRSI filtering
-- ✅ Med 2 Tax Relief automation
-- ✅ PDF generation
-- ✅ GDPR consent logging
-- ✅ Mobile-responsive UI
 
 ## Pilot Area
 
