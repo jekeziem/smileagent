@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmileAgent | Your Smile, Optimised</title>
 
+	<!-- Analytics -->
+    <script defer data-domain="smileagent-heak.onrender.com" src="https://plausible.io/js/script.js"></script>
+    <script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
+
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
@@ -1442,8 +1446,8 @@ createApp({
             this.bookingComplete = false;
         },
         
-        startEmergencyMode() { this.appMode = 'emergency'; this.triageStep = 1; },
-        startCosmeticMode() { this.appMode = 'cosmetic'; },
+        startEmergencyMode() { this.appMode = 'emergency'; this.triageStep = 1; plausible('Start Emergency Flow'); },
+        startCosmeticMode() { this.appMode = 'cosmetic'; plausible('Start Cosmetic Flow'); },
         
         goBackTriage() {
             if (this.triageStep === 1) this.goHome();
@@ -1502,6 +1506,7 @@ createApp({
                     })
                 });
                 this.triageResult = await response.json();
+				plausible('Triage Complete', { props: { urgency: this.triageResult.urgency_display } });
                 await this.searchEmergencyClinics();
                 this.triageStep = 'results';
             } catch (err) {
@@ -1532,7 +1537,7 @@ createApp({
         },
         
         setPaymentFilter(filter) { this.paymentFilter = filter; this.searchEmergencyClinics(); },
-        selectEmergencyClinic(clinic) { this.selectedEmergencyClinic = clinic; this.triageStep = 'booking'; },
+        selectEmergencyClinic(clinic) { this.selectedEmergencyClinic = clinic; this.triageStep = 'booking'; plausible('Selected Emergency Clinic'); },
         
         async submitEmergencyBooking() {
             if (!this.emergencyBooking.gdprConsent) {
@@ -1579,6 +1584,7 @@ createApp({
 
                 this.triageStep = 'confirmed';
                 this.showToast('Request sent to clinic!', 'success');
+				plausible('Emergency Booking Complete');
             } catch (err) {
                 console.error(err);
                 this.showToast('Failed to send request', 'error');
@@ -1844,6 +1850,7 @@ createApp({
                 this.showForm = false;
                 
                 this.showToast('Booking confirmed! 🎉', 'success');
+				plausible('Cosmetic Booking Complete');
             } catch (err) {
                 console.error('Booking error:', err);
                 this.showToast(err.message || 'Booking failed. Please try again.', 'error');
