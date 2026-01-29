@@ -1491,12 +1491,10 @@ createApp({
             triageStep: 0,
             selectedRedFlags: [],
             redFlags: [
-                { id: 'breathing_difficulty', label: 'Difficulty breathing, swallowing, or opening your mouth', icon: 'ph ph-wind' },
-                { id: 'swelling_spreading', label: 'Swelling getting worse by the hour – spreading to eye, neck, or throat', icon: 'ph ph-warning-circle' },
-                { id: 'fever_unwell', label: 'Fever with swelling AND feeling very unwell (shivering, racing heart)', icon: 'ph ph-thermometer' },
-                { id: 'uncontrolled_bleeding', label: 'Mouth filling with blood – won\'t stop after 20 mins of firm pressure', icon: 'ph ph-drop' },
-                { id: 'tooth_knocked_out', label: 'Permanent tooth completely knocked out (whole tooth came out)', icon: 'ph ph-tooth' },
-                { id: 'facial_trauma', label: 'Hit to face – jaw won\'t close properly, or you lost consciousness', icon: 'ph ph-warning' }
+                { id: 'breathing_difficulty', label: "Can't breathe, swallow, or open mouth", icon: 'ph ph-wind' },
+                { id: 'swelling_spreading', label: 'Swelling spreading to eye, neck, or throat', icon: 'ph ph-warning-circle' },
+                { id: 'uncontrolled_bleeding', label: "Bleeding won't stop (20+ mins pressure)", icon: 'ph ph-drop' },
+                { id: 'facial_trauma', label: "Facial trauma – serious injury to the face or mouth", icon: 'ph ph-warning' }
             ],
             triageData: { painLevel: null, painWorsening: false, sleepDisrupted: false, chiefComplaint: '', symptomDuration: 24 },
             triageLoading: false,
