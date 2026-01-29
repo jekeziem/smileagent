@@ -5,16 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmileAgent | Your Smile, Optimised</title>
 
-	<!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-OLxXYpT1VN6HnlQqkKLNc.js"></script>
-<script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  plausible.init()
-</script>
-
-
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script defer data-domain="smileagent-heak.onrender.com" src="https://plausible.io/js/script.js"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,8 +50,6 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #059669; border-radius: 10px; }
         .urgent-mode { background: linear-gradient(180deg, #FEF2F2 0%, #FFFFFF 100%); }
-        body { background: #f0f2f5; }
-        #app { max-width: 500px; margin: 0 auto; background: #ffffff; min-height: 100vh; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body class="bg-gradient-to-br from-emerald-50 via-white to-emerald-50 min-h-screen">
@@ -100,7 +91,7 @@
             </div>
             <h1 v-if="!appMode" class="font-heading text-2xl font-bold text-gray-900 mb-1">Your Smile,<br>Optimised.</h1>
             <h1 v-else-if="appMode === 'emergency'" class="font-heading text-2xl font-bold text-gray-900 mb-1">
-                {{ triageStep === 0 ? 'Emergency Dental Help' : triageStep === 'ae_redirect' ? '🚨 Hospital Required' : 'Finding You Care' }}
+                {{ triageStep === 0 ? 'Emergency Dental Help' : triageStep === 'ae_redirect' ? 'Hospital Required' : 'Finding You Care' }}
             </h1>
             <h1 v-else class="font-heading text-2xl font-bold text-gray-900 mb-1">Your Smile,<br>Optimised.</h1>
             <p v-if="!appMode" class="text-sm text-gray-500">The Relief You Need.<br>The Smile You Want.</p>
@@ -179,7 +170,7 @@
                            :class="['flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all',
                                     selectedRedFlags.includes(flag.id) ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300']">
                         <input type="checkbox" :value="flag.id" v-model="selectedRedFlags" class="hidden">
-                        <span class="text-2xl">{{ flag.icon }}</span>
+                        <i :class="flag.icon + ' text-2xl text-red-500'"></i>
                         <span class="text-sm text-gray-700">{{ flag.label }}</span>
                     </label>
                 </div>
@@ -199,7 +190,7 @@
             <!-- A&E Redirect -->
             <div v-if="triageStep === 'ae_redirect'" class="bg-white rounded-2xl shadow-soft p-5 text-center space-y-4">
                 <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-                    <span class="text-4xl">🚨</span>
+                    <i class="ph ph-warning text-4xl text-red-500"></i>
                 </div>
                 
                 <h2 class="text-xl font-bold text-gray-900">These symptoms need hospital assessment</h2>
@@ -209,16 +200,60 @@
                 </p>
                 
                 <a href="tel:999" class="block w-full py-4 bg-red-600 text-white rounded-xl font-bold text-lg">
-                    📞 Call 999
+                    <i class="ph ph-phone mr-2"></i>Call 999
                 </a>
                 
                 <button @click="findNearestAE" class="w-full py-3 border-2 border-red-500 text-red-600 rounded-xl font-semibold">
-                    🏥 Find Nearest A&E
+                    <i class="ph ph-first-aid-kit mr-2"></i>Find Nearest A&E
                 </button>
                 
                 <button @click="triageStep = 2" class="text-sm text-gray-500 underline">
                     I understand, but I want to continue
                 </button>
+            </div>
+            
+            <!-- Avulsed Tooth - Special Screen (routes to YOUR clinics, not A&E) -->
+            <div v-if="triageStep === 'avulsed_tooth'" class="bg-white rounded-2xl shadow-soft p-5 text-center space-y-4">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
+                    <i class="ph ph-clock-countdown text-4xl text-amber-600"></i>
+                </div>
+                
+                <h2 class="text-xl font-bold text-gray-900">Act Fast – 60 Minute Window</h2>
+                <p class="text-sm text-gray-600">The sooner the tooth is reimplanted, the better the chance of saving it.</p>
+                
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left">
+                    <p class="font-semibold text-gray-900 mb-2">Do this NOW:</p>
+                    <ol class="text-sm text-gray-700 space-y-2">
+                        <li class="flex gap-2">
+                            <span class="font-bold text-amber-600">1.</span>
+                            <span>Pick up tooth by the <strong>white part (crown)</strong> – don't touch the root</span>
+                        </li>
+                        <li class="flex gap-2">
+                            <span class="font-bold text-amber-600">2.</span>
+                            <span>If dirty, rinse gently with <strong>milk or saliva</strong> (not water)</span>
+                        </li>
+                        <li class="flex gap-2">
+                            <span class="font-bold text-amber-600">3.</span>
+                            <span>Try to put it back in the socket – bite down gently on a cloth</span>
+                        </li>
+                        <li class="flex gap-2">
+                            <span class="font-bold text-amber-600">4.</span>
+                            <span>Can't reinsert? Keep it moist in <strong>milk</strong> or inside your cheek</span>
+                        </li>
+                    </ol>
+                </div>
+                
+                <button @click="handleAvulsedToothClinics" 
+                        class="w-full py-4 bg-emerald-500 text-white rounded-xl font-bold text-lg hover:bg-emerald-600">
+                    <i class="ph ph-map-pin mr-2"></i>Find Emergency Dentist NOW
+                </button>
+                
+                <button @click="findNearestAE" 
+                        class="w-full py-3 border-2 border-gray-300 text-gray-600 rounded-xl font-semibold">
+                    <i class="ph ph-first-aid-kit mr-2"></i>Nearest A&E (if no dentist available)
+                </button>
+                
+                <p class="text-xs text-gray-400">A dentist can reimplant your tooth faster than A&E. Go to A&E only if you can't reach a dentist within 60 minutes.</p>
             </div>
             
             <!-- Step 2: Pain Assessment -->
@@ -294,7 +329,11 @@
                              triageResult.urgency === 'yellow' ? 'bg-yellow-100 border-2 border-yellow-400' :
                              'bg-emerald-100 border-2 border-emerald-400']">
                     <div class="flex items-center gap-3">
-                        <span class="text-3xl">{{ triageResult.urgency === 'orange' ? '🟠' : triageResult.urgency === 'yellow' ? '🟡' : '🟢' }}</span>
+                        <div :class="['w-8 h-8 rounded-full flex items-center justify-center',
+                                     triageResult.urgency === 'orange' ? 'bg-amber-500' :
+                                     triageResult.urgency === 'yellow' ? 'bg-yellow-400' : 'bg-emerald-500']">
+                            <i class="ph ph-clock text-white text-lg"></i>
+                        </div>
                         <div>
                             <p class="font-bold text-gray-900">{{ triageResult.urgency_display }}</p>
                             <p class="text-sm text-gray-700">{{ triageResult.recommended_timeframe }}</p>
@@ -445,12 +484,12 @@
                                 <button @click="emergencyBooking.contactPreference = 'call'"
                                         :class="['py-2 rounded-lg border-2 text-sm font-medium',
                                                  emergencyBooking.contactPreference === 'call' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
-                                    📞 Call me
+                                    <i class="ph ph-phone mr-1"></i>Call me
                                 </button>
                                 <button @click="emergencyBooking.contactPreference = 'sms'"
                                         :class="['py-2 rounded-lg border-2 text-sm font-medium',
                                                  emergencyBooking.contactPreference === 'sms' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
-                                    💬 SMS
+                                    <i class="ph ph-chat-text mr-1"></i>SMS
                                 </button>
                             </div>
                         </div>
@@ -514,8 +553,8 @@
                         <p class="text-sm text-gray-600"><strong>Phone:</strong> {{ selectedEmergencyClinic?.phone }}</p>
                     </div>
                     
-                    <a :href="'tel:' + selectedEmergencyClinic?.phone" class="block w-full py-3 border-2 border-emerald-500 text-emerald-600 rounded-xl font-semibold mb-3">
-                        📞 Call Clinic Directly
+                    <a :href="'tel:' + selectedEmergencyClinic?.phone" class="block w-full py-3 border-2 border-emerald-500 text-emerald-600 rounded-xl font-semibold mb-3 text-center">
+                        <i class="ph ph-phone mr-1"></i>Call Clinic Directly
                     </a>
                     
                     <button @click="goHome" class="w-full py-3 bg-emerald-500 text-white rounded-xl font-semibold">
@@ -537,120 +576,67 @@
             </button>
             
             <!-- ============================================ -->
-            <!-- STEP 1: UPLOAD PHOTO (ORIGINAL RESTORED) -->
+            <!-- STEP 1: SMILE GOALS (NEW FLOW) -->
             <!-- ============================================ -->
             <div v-if="!result && !loading" class="animate-fade-in">
                 
-                <!-- Photo Upload -->
                 <div class="bg-white rounded-2xl shadow-soft p-5 mb-4">
-                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                        Upload your smile
-                    </label>
+                    <h2 class="text-lg font-semibold text-gray-900 mb-2 text-center">What would you like to improve?</h2>
+                    <p class="text-xs text-gray-500 text-center mb-4">Most people fit into one of these – pick the closest</p>
                     
-                    <div @click="triggerUpload" 
-                         @dragover.prevent="dragActive = true"
-                         @dragleave="dragActive = false"
-                         @drop.prevent="handleDrop"
-                         :class="[
-                             'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
-                             dragActive ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-emerald-300'
-                         ]">
-                        
-                        <div v-if="!previewUrl">
-                            <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <i class="ph ph-camera text-3xl text-emerald-500"></i>
+                    <div class="space-y-3">
+                        <!-- Straighten -->
+                        <button @click="selectSmileGoal('invisalign')"
+                                class="w-full p-4 rounded-xl text-left transition-all border-2 bg-white border-gray-200 hover:border-emerald-400 hover:bg-emerald-50 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="ph ph-arrows-out-line-horizontal text-2xl text-emerald-600"></i>
                             </div>
-                            <p class="text-gray-700 font-medium mb-1">Tap to Upload Smile</p>
-                            <p class="text-xs text-gray-400">Supports JPG, PNG</p>
-                        </div>
+                            <div>
+                                <div class="font-semibold text-gray-900">Straighten my teeth</div>
+                                <div class="text-xs text-gray-500">For crowded, crooked or overlapping teeth</div>
+                            </div>
+                        </button>
                         
-                        <div v-else class="relative">
-                            <img :src="previewUrl" alt="Your smile" class="w-32 h-32 object-cover rounded-xl mx-auto">
-                            <button @click.stop="clearPhoto" 
-                                    class="absolute top-0 right-1/2 translate-x-16 -translate-y-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center">
-                                <i class="ph ph-x text-sm"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <input type="file" ref="fileInput" @change="handleFileSelect" accept="image/*" class="hidden">
-                    
-                    <!-- Consent -->
-                    <label class="flex items-start gap-2 mt-3 cursor-pointer">
-                        <input type="checkbox" v-model="savePhotoConsent" class="mt-1 accent-emerald-500">
-                        <span class="text-xs text-gray-500">Save my photo for 7 days to generate my Med 2 form</span>
-                    </label>
-                    
-                    <!-- Security Badge -->
-                    <div class="flex items-center justify-center gap-1 mt-3 text-xs text-gray-400">
-                        <i class="ph ph-lock-simple"></i>
-                        <span>Secured by AES-256</span>
-                    </div>
-                </div>
-                
-                <!-- OR Divider -->
-                <div class="flex items-center gap-3 my-4">
-                    <div class="flex-1 h-px bg-gray-200"></div>
-                    <span class="text-xs text-gray-400 font-medium">OR</span>
-                    <div class="flex-1 h-px bg-gray-200"></div>
-                </div>
-                
-                <!-- Treatment Selection (Skip AI) -->
-                <div class="mb-4">
-                    <p class="text-sm text-gray-600 text-center mb-3">Already know what you need?</p>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button @click="skipToTreatment('invisalign')"
-                                class="px-3 py-3 rounded-xl text-sm font-medium transition-all border-2 bg-white text-gray-700 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50">
-                            <i class="ph ph-tooth text-lg mb-1 text-emerald-500"></i>
-                            <div>Invisalign</div>
+                        <!-- Whiten -->
+                        <button @click="selectSmileGoal('whitening')"
+                                class="w-full p-4 rounded-xl text-left transition-all border-2 bg-white border-gray-200 hover:border-emerald-400 hover:bg-emerald-50 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="ph ph-sun text-2xl text-amber-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-900">Whiten my teeth</div>
+                                <div class="text-xs text-gray-500">For yellow, stained or dark teeth</div>
+                            </div>
                         </button>
-                        <button @click="skipToTreatment('composite_bonding')"
-                                class="px-3 py-3 rounded-xl text-sm font-medium transition-all border-2 bg-white text-gray-700 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50">
-                            <i class="ph ph-sparkle text-lg mb-1 text-emerald-500"></i>
-                            <div>Composite Bonding</div>
+                        
+                        <!-- Fix chips/gaps -->
+                        <button @click="selectSmileGoal('bonding_veneers')"
+                                class="w-full p-4 rounded-xl text-left transition-all border-2 bg-white border-gray-200 hover:border-emerald-400 hover:bg-emerald-50 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="ph ph-sparkle text-2xl text-blue-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-900">Fix chips, gaps or shape</div>
+                                <div class="text-xs text-gray-500">For uneven edges, small gaps, worn or chipped teeth</div>
+                            </div>
                         </button>
-                        <button @click="skipToTreatment('veneers')"
-                                class="px-3 py-3 rounded-xl text-sm font-medium transition-all border-2 bg-white text-gray-700 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50">
-                            <i class="ph ph-smiley text-lg mb-1 text-emerald-500"></i>
-                            <div>Veneers</div>
+                        
+                        <!-- Not sure -->
+                        <button @click="selectSmileGoal('all')"
+                                class="w-full p-4 rounded-xl text-left transition-all border-2 bg-white border-gray-200 hover:border-gray-400 hover:bg-gray-50 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="ph ph-question text-2xl text-gray-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-900">Not sure – show me options</div>
+                                <div class="text-xs text-gray-500">See all ways to improve my smile</div>
+                            </div>
                         </button>
                     </div>
                 </div>
                 
-                <!-- Analyse Button (only shows when photo uploaded) -->
-                <div v-if="previewUrl" class="space-y-3">
-                    <!-- Treatment Selection for AI path -->
-                    <div class="bg-white rounded-2xl shadow-soft p-4">
-                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                            What treatment interests you?
-                        </label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button v-for="(treatment, key) in treatments" 
-                                    :key="key"
-                                    @click="selectTreatment(key)"
-                                    :class="[
-                                        'px-3 py-2 rounded-lg text-sm font-medium transition-all border-2',
-                                        selectedTreatment === key 
-                                            ? 'bg-emerald-500 text-white border-emerald-500' 
-                                            : 'bg-white text-gray-700 border-gray-200 hover:border-emerald-300'
-                                    ]">
-                                {{ treatment.display_name }}
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <button @click="analyseSmile" 
-                            :disabled="!selectedTreatment"
-                            :class="[
-                                'w-full py-4 rounded-xl font-semibold text-lg transition-all',
-                                selectedTreatment
-                                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-200'
-                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            ]">
-                        <i class="ph ph-sparkle mr-2"></i>
-                        Analyse My Smile
-                    </button>
-                </div>
+                <!-- Hidden file input for later use -->
+                <input type="file" ref="fileInput" @change="handleFileSelect" accept="image/*" class="hidden">
             </div>
 
             <!-- ============================================ -->
@@ -696,6 +682,40 @@
                     <i class="ph ph-arrow-left"></i>
                     <span class="text-sm">Back</span>
                 </button>
+                
+                <!-- Whitening Med 2 Disclaimer -->
+                <div v-if="selectedTreatment === 'whitening'" class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <div class="flex items-start gap-3">
+                        <i class="ph ph-info text-amber-600 text-xl flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <p class="text-sm text-amber-800 font-medium">About Tax Relief</p>
+                            <p class="text-xs text-amber-700 mt-1">Med 2 tax relief typically applies to restorative treatments (veneers, bonding) when clinically indicated, not standard cosmetic whitening. Your dentist will confirm eligibility.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Treatment Selector for bonding/veneers choice -->
+                <div v-if="smileGoal === 'bonding_veneers'" class="bg-white rounded-2xl shadow-soft p-4">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                        Which treatment interests you?
+                    </label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button @click="selectedTreatment = 'composite_bonding'; loadClinics()"
+                                :class="['px-3 py-3 rounded-lg text-sm font-medium border-2 transition-all',
+                                         selectedTreatment === 'composite_bonding' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                            <i class="ph ph-sparkle text-lg mb-1 text-emerald-500"></i>
+                            <div>Composite Bonding</div>
+                            <div class="text-xs text-gray-500">From €200/tooth</div>
+                        </button>
+                        <button @click="selectedTreatment = 'veneers'; loadClinics()"
+                                :class="['px-3 py-3 rounded-lg text-sm font-medium border-2 transition-all',
+                                         selectedTreatment === 'veneers' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                            <i class="ph ph-star text-lg mb-1 text-emerald-500"></i>
+                            <div>Veneers</div>
+                            <div class="text-xs text-gray-500">From €600/tooth</div>
+                        </button>
+                    </div>
+                </div>
                 
                 <!-- Med 2 Tax Eligibility Section (FULL ORIGINAL) -->
                 <div class="bg-white rounded-2xl shadow-soft p-4">
@@ -826,7 +846,7 @@
                                     <i class="ph ph-check text-white"></i>
                                 </div>
                                 <div class="flex-1">
-                                    <p class="text-sm font-bold text-gray-900 mb-1">✅ You're Eligible for Tax Relief!</p>
+                                    <p class="text-sm font-bold text-gray-900 mb-1">You're Eligible for Tax Relief!</p>
                                 </div>
                             </div>
                         </div>
@@ -1071,6 +1091,34 @@
                         </div>
                     </div>
                     
+                    <!-- Optional Photo Upload -->
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mt-4">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" v-model="wantsPhotoUpload" class="mt-1 accent-emerald-500">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">Help your dentist prepare (optional)</p>
+                                <p class="text-xs text-gray-500">Upload a smile photo so they can review your case before your appointment – this can help avoid unnecessary consultation costs.</p>
+                            </div>
+                        </label>
+                        
+                        <div v-if="wantsPhotoUpload" class="mt-3">
+                            <div @click="triggerUpload" 
+                                 class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-emerald-400 transition-all">
+                                <div v-if="!previewUrl">
+                                    <i class="ph ph-camera text-2xl text-gray-400"></i>
+                                    <p class="text-sm text-gray-500 mt-1">Tap to upload</p>
+                                </div>
+                                <div v-else>
+                                    <img :src="previewUrl" class="w-20 h-20 object-cover rounded-lg mx-auto">
+                                    <button @click.stop="clearPhoto" class="text-xs text-red-500 mt-1">Remove</button>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-2 text-center">
+                                <i class="ph ph-lock-simple mr-1"></i>Stored securely, deleted after 7 days
+                            </p>
+                        </div>
+                    </div>
+                    
                     <!-- Validation Errors -->
                     <div v-if="validationErrors.length" class="mt-4 p-3 bg-red-50 rounded-xl">
                         <p v-for="error in validationErrors" :key="error" class="text-sm text-red-600">
@@ -1082,7 +1130,7 @@
                     <button @click="validateAndProceed"
                             :disabled="bookingInProgress"
                             class="w-full mt-4 py-4 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-all disabled:opacity-50">
-                        {{ bookingInProgress ? 'Processing...' : 'Confirm Booking' }}
+                        {{ bookingInProgress ? 'Processing...' : 'Continue to Payment' }}
                     </button>
                 </div>
             </div>
@@ -1333,7 +1381,7 @@ const { createApp } = Vue;
 createApp({
     data() {
         return {
-            apiBase: 'https://smileagent-heak.onrender.com',
+            apiBase: window.location.origin,
             
             // Mode Selection
             appMode: null,
@@ -1346,10 +1394,12 @@ createApp({
             triageStep: 0,
             selectedRedFlags: [],
             redFlags: [
-                { id: 'breathing_difficulty', label: 'Difficulty breathing or swallowing', icon: '😮‍💨' },
-                { id: 'swelling_spreading', label: 'Swelling spreading to eye, neck, or under tongue', icon: '🔴' },
-                { id: 'fever_with_swelling', label: 'Fever with facial swelling', icon: '🤒' },
-                { id: 'uncontrolled_bleeding', label: 'Bleeding that won\'t stop (20+ minutes)', icon: '🩸' }
+                { id: 'breathing_difficulty', label: 'Difficulty breathing, swallowing, or opening your mouth', icon: 'ph ph-wind' },
+                { id: 'swelling_spreading', label: 'Swelling getting worse by the hour – spreading to eye, neck, or throat', icon: 'ph ph-warning-circle' },
+                { id: 'fever_unwell', label: 'Fever with swelling AND feeling very unwell (shivering, racing heart)', icon: 'ph ph-thermometer' },
+                { id: 'uncontrolled_bleeding', label: 'Mouth filling with blood – won\'t stop after 20 mins of firm pressure', icon: 'ph ph-drop' },
+                { id: 'tooth_knocked_out', label: 'Permanent tooth completely knocked out (whole tooth came out)', icon: 'ph ph-tooth' },
+                { id: 'facial_trauma', label: 'Hit to face – jaw won\'t close properly, or you lost consciousness', icon: 'ph ph-warning' }
             ],
             triageData: { painLevel: null, painWorsening: false, sleepDisrupted: false, chiefComplaint: '', symptomDuration: 24 },
             triageLoading: false,
@@ -1379,9 +1429,11 @@ createApp({
             photoFile: null,
             photoId: null,
             savePhotoConsent: true,
+            wantsPhotoUpload: false,
             
             // Treatment
             selectedTreatment: null,
+            smileGoal: null,
             treatments: {
                 invisalign: { name: 'Invisalign', display_name: 'Invisalign', med2_eligible: true },
                 composite_bonding: { name: 'Composite Bonding', display_name: 'Composite Bonding', med2_eligible: true },
@@ -1452,8 +1504,8 @@ createApp({
             this.bookingComplete = false;
         },
         
-        startEmergencyMode() { this.appMode = 'emergency'; this.triageStep = 1; plausible('Start Emergency Flow'); },
-        startCosmeticMode() { this.appMode = 'cosmetic'; plausible('Start Cosmetic Flow'); },
+        startEmergencyMode() { this.appMode = 'emergency'; this.triageStep = 1; },
+        startCosmeticMode() { this.appMode = 'cosmetic'; },
         
         goBackTriage() {
             if (this.triageStep === 1) this.goHome();
@@ -1487,8 +1539,28 @@ createApp({
         
         // ========== EMERGENCY TRIAGE ==========
         checkRedFlags() {
-            if (this.selectedRedFlags.length > 0) this.triageStep = 'ae_redirect';
-            else this.triageStep = 2;
+            // Special handling for avulsed tooth - route to clinics, not A&E
+            if (this.selectedRedFlags.includes('tooth_knocked_out') && this.selectedRedFlags.length === 1) {
+                this.triageStep = 'avulsed_tooth';
+                plausible('Avulsed Tooth Screen');
+                return;
+            }
+            // All other red flags go to A&E
+            if (this.selectedRedFlags.length > 0) {
+                this.triageStep = 'ae_redirect';
+                plausible('A&E Redirect', { props: { flags: this.selectedRedFlags.join(',') } });
+            } else {
+                this.triageStep = 2;
+            }
+        },
+        
+        async handleAvulsedToothClinics() {
+            // Set up for emergency clinic search with avulsed tooth context
+            this.triageData.chiefComplaint = 'Tooth knocked out - needs urgent reimplantation';
+            this.triageData.painLevel = 7;
+            await this.searchEmergencyClinics();
+            this.triageStep = 'results';
+            plausible('Avulsed Tooth Find Dentist');
         },
         
         findNearestAE() {
@@ -1512,7 +1584,6 @@ createApp({
                     })
                 });
                 this.triageResult = await response.json();
-				plausible('Triage Complete', { props: { urgency: this.triageResult.urgency_display } });
                 await this.searchEmergencyClinics();
                 this.triageStep = 'results';
             } catch (err) {
@@ -1543,13 +1614,12 @@ createApp({
         },
         
         setPaymentFilter(filter) { this.paymentFilter = filter; this.searchEmergencyClinics(); },
-        selectEmergencyClinic(clinic) { this.selectedEmergencyClinic = clinic; this.triageStep = 'booking'; plausible('Selected Emergency Clinic'); },
+        selectEmergencyClinic(clinic) { this.selectedEmergencyClinic = clinic; this.triageStep = 'booking'; },
         
         async submitEmergencyBooking() {
-            if (!this.emergencyBooking.gdprConsent) {
-                this.showToast('Please accept data processing consent', 'error');
-                return;
-            }
+ 		if (!this.emergencyBooking.gdprConsent) {
+        	this.showToast('Please accept data processing consent', 'error');
+        	return;
             this.emergencyBookingLoading = true;
             try {
                 const response = await fetch(`${this.apiBase}/api/briefs/generate`, {
@@ -1590,7 +1660,6 @@ createApp({
 
                 this.triageStep = 'confirmed';
                 this.showToast('Request sent to clinic!', 'success');
-				plausible('Emergency Booking Complete');
             } catch (err) {
                 console.error(err);
                 this.showToast('Failed to send request', 'error');
@@ -1605,20 +1674,36 @@ createApp({
         skipToTreatment(key) {
             this.selectedTreatment = key;
             this.usedAI = false;
-            this.med2Active = false;
+            this.med2Active = key !== 'whitening'; // Whitening not Med 2 eligible
             this.loadClinics();
             this.result = { status: 'success', photo_id: null, saved_for_med2: false, diagnosis: null };
-            this.showToast('Clinics loaded - check your tax eligibility if needed', 'info');
+            this.showToast('Clinics loaded', 'info');
+            plausible('Selected Treatment', { props: { treatment: key } });
         },
         
-        skipToCheckup() {
-            this.appMode = 'cosmetic';
-            this.selectedTreatment = null;
+        selectSmileGoal(goal) {
+            this.smileGoal = goal;
             this.usedAI = false;
-            this.med2Active = false;
+            
+            // Map goals to treatments
+            if (goal === 'invisalign') {
+                this.selectedTreatment = 'invisalign';
+                this.med2Active = true;
+            } else if (goal === 'whitening') {
+                this.selectedTreatment = 'whitening';
+                this.med2Active = false; // Whitening not Med 2 eligible
+            } else if (goal === 'bonding_veneers') {
+                this.selectedTreatment = 'composite_bonding'; // Default to bonding
+                this.med2Active = true;
+            } else {
+                // 'all' - show everything
+                this.selectedTreatment = null;
+                this.med2Active = true;
+            }
+            
             this.loadClinics();
             this.result = { status: 'success', photo_id: null, saved_for_med2: false, diagnosis: null };
-            this.showToast('Select a clinic for your checkup', 'info');
+            plausible('Selected Smile Goal', { props: { goal: goal } });
         },
         
         getTreatmentDisplayName(key) { return this.treatments[key]?.display_name || key; },
@@ -1776,8 +1861,7 @@ createApp({
             if (!this.bookingData.ppsn || !/^\d{7}[A-Za-z]{1,2}$/.test(this.bookingData.ppsn.replace(/\s/g, ''))) this.validationErrors.push('Please enter a valid PPSN (7 digits + 1-2 letters)');
             if (!this.bookingData.address || this.bookingData.address.length < 10) this.validationErrors.push('Please enter your full address');
             
-            // Skip payment step for validation phase - go straight to booking
-            if (this.validationErrors.length === 0) this.processPayment();
+            if (this.validationErrors.length === 0) this.showPayment = true;
         },
         
         // ========== COSMETIC: PAYMENT ==========
@@ -1856,7 +1940,6 @@ createApp({
                 this.showForm = false;
                 
                 this.showToast('Booking confirmed! 🎉', 'success');
-				plausible('Cosmetic Booking Complete');
             } catch (err) {
                 console.error('Booking error:', err);
                 this.showToast(err.message || 'Booking failed. Please try again.', 'error');
