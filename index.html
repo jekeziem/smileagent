@@ -176,11 +176,11 @@ I just need a routine checkup
 
 <div class="space-y-2">
 <label v-for="flag in redFlags" :key="flag.id"
-:class="['flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all',
-                                   selectedRedFlags.includes(flag.id) ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300']">
-<input type="checkbox" :value="flag.id" v-model="selectedRedFlags" class="hidden">
-<span class="text-2xl">{{ flag.icon }}</span>
-<span class="text-sm text-gray-700">{{ flag.label }}</span>
+       :class="['flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all',
+                selectedRedFlags.includes(flag.id) ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300']">
+    <input type="checkbox" :value="flag.id" v-model="selectedRedFlags" class="hidden">
+    <i :class="flag.icon + ' text-2xl text-red-500'"></i>
+    <span class="text-sm text-gray-700">{{ flag.label }}</span>
 </label>
 </div>
 
