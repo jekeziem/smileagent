@@ -34,3 +34,5 @@ cryptography==42.0.0
 
 # Monitoring
 # sentry-sdk[fastapi]==1.40.0
+
+pydantic==2.5.0
