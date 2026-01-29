@@ -6,6 +6,7 @@
     <title>SmileAgent | Your Smile, Optimised</title>
 
     <script defer data-domain="smileagent-heak.onrender.com" src="https://plausible.io/js/script.js"></script>
+    <script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
 
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -156,4 +157,790 @@
                 
                 <div class="space-y-2">
                     <label v-for="flag in redFlags" :key="flag.id"
-                           :class="['flex items-center gap-3 p-4 rounded
+                           :class="['flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all',
+                                    selectedRedFlags.includes(flag.id) ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300']">
+                        <input type="checkbox" :value="flag.id" v-model="selectedRedFlags" class="hidden">
+                        <i :class="flag.icon + ' text-2xl text-red-500'"></i>
+                        <span class="text-sm text-gray-700">{{ flag.label }}</span>
+                    </label>
+                </div>
+                
+                <button @click="selectedRedFlags = []; triageStep = 2" 
+                        class="w-full py-4 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600">
+                    <i class="ph ph-check mr-2"></i>
+                    None of these apply to me
+                </button>
+                
+                <button v-if="selectedRedFlags.length > 0" @click="checkRedFlags"
+                        class="w-full py-4 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600">
+                    Seek emergency medical care immediately
+                </button>
+            </div>
+            
+            <div v-if="triageStep === 'ae_redirect'" class="bg-white rounded-2xl shadow-soft p-5 text-center space-y-4">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                    <span class="text-4xl">🚨</span>
+                </div>
+                
+                <h2 class="text-xl font-bold text-gray-900">These symptoms need hospital assessment</h2>
+                <p class="text-sm text-gray-600">
+                    Based on what you've described, you should go to A&E or call 999. 
+                    These symptoms can indicate a serious condition.
+                </p>
+                
+                <a href="tel:999" class="block w-full py-4 bg-red-600 text-white rounded-xl font-bold text-lg">
+                    📞 Call 999
+                </a>
+                
+                <button @click="findNearestAE" class="w-full py-3 border-2 border-red-500 text-red-600 rounded-xl font-semibold">
+                    🏥 Find Nearest A&E
+                </button>
+                
+                <button @click="triageStep = 2" class="text-sm text-gray-500 underline">
+                    I understand, but I want to continue
+                </button>
+            </div>
+            
+            <div v-if="triageStep === 2" class="bg-white rounded-2xl shadow-soft p-5 space-y-5">
+                <h2 class="text-lg font-semibold text-gray-900">Tell us about your pain</h2>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Pain level right now</label>
+                    <div class="flex gap-1">
+                        <button v-for="n in 10" :key="n" @click="triageData.painLevel = n"
+                                :class="['flex-1 py-3 rounded-lg font-semibold transition-all text-sm',
+                                         triageData.painLevel === n 
+                                             ? (n <= 3 ? 'bg-emerald-500 text-white' : n <= 6 ? 'bg-amber-500 text-white' : 'bg-red-500 text-white')
+                                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200']">
+                            {{ n }}
+                        </button>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>Mild</span><span>Moderate</span><span>Severe</span>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer">
+                        <input type="checkbox" v-model="triageData.painWorsening" class="w-5 h-5 accent-emerald-500">
+                        <span class="text-sm text-gray-700">Pain is getting worse</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer">
+                        <input type="checkbox" v-model="triageData.sleepDisrupted" class="w-5 h-5 accent-emerald-500">
+                        <span class="text-sm text-gray-700">Pain is keeping me awake</span>
+                    </label>
+                </div>
+                
+                <button @click="triageStep = 3" :disabled="!triageData.painLevel"
+                        :class="['w-full py-4 rounded-xl font-semibold transition-all',
+                                 triageData.painLevel ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-gray-200 text-gray-400']">
+                    Continue
+                </button>
+            </div>
+            
+            <div v-if="triageStep === 3" class="bg-white rounded-2xl shadow-soft p-5 space-y-4">
+                <h2 class="text-lg font-semibold text-gray-900">Quick description</h2>
+                <p class="text-sm text-gray-500">This helps the dentist prepare for your visit</p>
+                
+                <textarea v-model="triageData.chiefComplaint" rows="3" maxlength="300"
+                          placeholder="E.g., 'Sharp pain in lower right molar, started 2 days ago'"
+                          class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">How long have you had symptoms?</label>
+                    <select v-model="triageData.symptomDuration" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        <option :value="6">Less than a day</option>
+                        <option :value="24">1-2 days</option>
+                        <option :value="72">3-7 days</option>
+                        <option :value="168">More than a week</option>
+                    </select>
+                </div>
+                
+                <button @click="submitTriage" :disabled="!triageData.chiefComplaint || triageLoading"
+                        :class="['w-full py-4 rounded-xl font-semibold transition-all',
+                                 triageData.chiefComplaint && !triageLoading ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-gray-200 text-gray-400']">
+                    {{ triageLoading ? 'Finding clinics...' : 'Find available clinics' }}
+                </button>
+            </div>
+            
+            <div v-if="triageStep === 'results'" class="space-y-4">
+                
+                <div :class="['rounded-2xl p-4', 
+                             triageResult.urgency === 'orange' ? 'bg-amber-100 border-2 border-amber-400' :
+                             triageResult.urgency === 'yellow' ? 'bg-yellow-100 border-2 border-yellow-400' :
+                             'bg-emerald-100 border-2 border-emerald-400']">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">{{ triageResult.urgency === 'orange' ? '🟠' : triageResult.urgency === 'yellow' ? '🟡' : '🟢' }}</span>
+                        <div>
+                            <p class="font-bold text-gray-900">{{ triageResult.urgency_display }}</p>
+                            <p class="text-sm text-gray-700">{{ triageResult.recommended_timeframe }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-if="triageResult.self_care_tips && triageResult.self_care_tips.length" class="bg-white rounded-2xl shadow-soft p-4">
+                    <h3 class="font-semibold text-gray-900 mb-2"><i class="ph ph-first-aid-kit text-emerald-500 mr-1"></i> While you wait</h3>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li v-for="tip in triageResult.self_care_tips" :key="tip" class="flex items-start gap-2">
+                            <i class="ph ph-check text-emerald-500 mt-0.5"></i>
+                            <span>{{ tip }}</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-soft p-4">
+                    <h3 class="font-semibold text-gray-900 mb-3">How will you pay?</h3>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button @click="setPaymentFilter('private')"
+                                :class="['py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all',
+                                         paymentFilter === 'private' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                            Private
+                        </button>
+                        <button @click="setPaymentFilter('medical_card')"
+                                :class="['py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all',
+                                         paymentFilter === 'medical_card' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                            Medical Card
+                        </button>
+                        <button @click="setPaymentFilter('prsi')"
+                                :class="['py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all',
+                                         paymentFilter === 'prsi' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                            PRSI
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-heading font-semibold text-gray-900">
+                            <i class="ph ph-map-pin text-emerald-500 mr-1"></i>
+                            Available Clinics
+                        </h3>
+                        <span class="text-sm text-gray-500">{{ emergencyClinics.length }} found</span>
+                    </div>
+                    
+                    <div v-if="emergencyClinics.length === 0" class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                        <p class="text-sm text-amber-800">No clinics match your filters. Try adjusting payment type or expanding search area.</p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div v-for="clinic in emergencyClinics" :key="clinic.id" class="clinic-card bg-white rounded-2xl shadow-card p-4">
+                            <div class="flex items-start justify-between mb-2">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <h4 class="font-heading font-semibold text-gray-900">{{ clinic.clinic_name }}</h4>
+                                        <span v-if="clinic.verified" class="text-emerald-500"><i class="ph-fill ph-seal-check"></i></span>
+                                    </div>
+                                    <p class="text-xs text-gray-500">
+                                        <i class="ph ph-map-pin text-emerald-500"></i>
+                                        {{ clinic.location }} · {{ clinic.distance_km }}km
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="flex items-center gap-1 text-amber-500">
+                                        <i class="ph-fill ph-star text-sm"></i>
+                                        <span class="text-sm font-semibold text-gray-900">{{ clinic.rating }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <span v-if="clinic.accepts_medical_card && clinic.mc_accepting_new" 
+                                      class="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+                                    <i class="ph ph-check-circle"></i> Medical Card ✓
+                                </span>
+                                <span v-else-if="clinic.accepts_medical_card && !clinic.mc_accepting_new"
+                                      class="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                                    <i class="ph ph-pause-circle"></i> MC - Full
+                                </span>
+                                <span v-else
+                                      class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">
+                                    No Medical Card
+                                </span>
+                                
+                                <span v-if="clinic.accepts_prsi"
+                                      class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                    PRSI ✓
+                                </span>
+                                
+                                <span v-if="clinic.has_emergency_slots"
+                                      class="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                                    <i class="ph ph-clock"></i> ~{{ clinic.typical_wait_hours }}h wait
+                                </span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center mb-3 p-2 bg-gray-50 rounded-lg">
+                                <span class="text-sm text-gray-600">Emergency Exam + X-Ray</span>
+                                <span class="font-bold text-gray-900">€{{ clinic.pricing?.emergency_exam || 90 }}</span>
+                            </div>
+                            
+                            <button @click="selectEmergencyClinic(clinic)" 
+                                    class="w-full py-3 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-all">
+                                Send Request
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <button @click="goHome" class="w-full py-3 text-gray-500 text-sm">
+                    ← Start over
+                </button>
+            </div>
+            
+            <div v-if="triageStep === 'booking'" class="space-y-4">
+                <button @click="triageStep = 'results'" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
+                    <i class="ph ph-arrow-left"></i>
+                    <span class="text-sm">Back to clinics</span>
+                </button>
+                
+                <div class="bg-white rounded-2xl shadow-soft p-5">
+                    <h3 class="font-heading font-bold text-xl text-gray-900 mb-1">Confirm Your Details</h3>
+                    <p class="text-sm text-gray-600 mb-4">{{ selectedEmergencyClinic?.clinic_name }}</p>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Name</label>
+                            <input v-model="emergencyBooking.name" type="text" placeholder="Your full name"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Phone *</label>
+                            <input v-model="emergencyBooking.phone" type="tel" placeholder="087 123 4567"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Preferred contact</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="emergencyBooking.contactPreference = 'call'"
+                                        :class="['py-2 rounded-lg border-2 text-sm font-medium',
+                                                 emergencyBooking.contactPreference === 'call' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    📞 Call me
+                                </button>
+                                <button @click="emergencyBooking.contactPreference = 'sms'"
+                                        :class="['py-2 rounded-lg border-2 text-sm font-medium',
+                                                 emergencyBooking.contactPreference === 'sms' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    💬 SMS
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div v-if="paymentFilter === 'medical_card'">
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Medical Card (last 4 digits)</label>
+                            <input v-model="emergencyBooking.mcLast4" type="text" maxlength="4" placeholder="1234"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Any other details?</label>
+                            <label class="flex items-center gap-2 p-2">
+                                <input type="checkbox" v-model="emergencyBooking.sensitiveToTemp" class="accent-emerald-500">
+                                <span class="text-sm text-gray-700">Sensitive to hot/cold</span>
+                            </label>
+                            <input v-model="emergencyBooking.previousTreatment" type="text" placeholder="Previous treatment on this tooth (optional)"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-gray-200 pt-4 mt-3">
+                        <label class="flex items-start gap-3 p-3 bg-blue-50 rounded-xl border border-blue-200 cursor-pointer">
+                            <input type="checkbox" v-model="emergencyBooking.gdprConsent" class="mt-1 w-5 h-5 accent-emerald-500">
+                            <span class="text-xs text-gray-700">
+                                <strong>Required:</strong> I consent to SmileAgent processing my health information to connect me with emergency dental care. 
+                                <a href="https://smileagent.ie/privacy" target="_blank" class="text-emerald-600 underline">Privacy Policy</a>
+                            </span>
+                        </label>
+                    </div>
+
+                    <button @click="submitEmergencyBooking" :disabled="!emergencyBooking.phone || emergencyBookingLoading"
+                            :class="['w-full mt-4 py-4 rounded-xl font-semibold transition-all',
+                                     emergencyBooking.phone && !emergencyBookingLoading ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-gray-200 text-gray-400']">
+                        {{ emergencyBookingLoading ? 'Sending...' : 'Send to Clinic' }}
+                    </button>
+                    
+                    <p class="text-xs text-gray-400 text-center mt-3">
+                        Your request has been sent. Appointment availability is subject to the clinic's review and capacity.
+                    </p>
+                </div>
+            </div>
+            
+            <div v-if="triageStep === 'confirmed'" class="space-y-4">
+                <div class="bg-white rounded-2xl shadow-soft p-6 text-center">
+                    <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="ph ph-check-circle text-4xl text-emerald-500"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-2">Request Sent!</h2>
+                    <p class="text-sm text-gray-600 mb-4">
+                        {{ selectedEmergencyClinic?.clinic_name }} has your details and will contact you shortly.
+                    </p>
+                    
+                    <div class="bg-gray-50 rounded-xl p-4 text-left mb-4">
+                        <p class="text-sm text-gray-600"><strong>Reference:</strong> {{ emergencyBriefId }}</p>
+                        <p class="text-sm text-gray-600"><strong>Clinic:</strong> {{ selectedEmergencyClinic?.clinic_name }}</p>
+                        <p class="text-sm text-gray-600"><strong>Phone:</strong> {{ selectedEmergencyClinic?.phone }}</p>
+                    </div>
+                    
+                    <a :href="'tel:' + selectedEmergencyClinic?.phone" class="block w-full py-3 border-2 border-emerald-500 text-emerald-600 rounded-xl font-semibold mb-3">
+                        📞 Call Clinic Directly
+                    </a>
+                    
+                    <button @click="goHome" class="w-full py-3 bg-emerald-500 text-white rounded-xl font-semibold">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="appMode === 'cosmetic'" class="animate-fade-in">
+            
+            <button v-if="!result && !loading" @click="goHome" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4">
+                <i class="ph ph-arrow-left"></i>
+                <span class="text-sm">Back</span>
+            </button>
+            
+            <div v-if="!result && !loading" class="animate-fade-in">
+                
+                <div class="bg-white rounded-2xl shadow-soft p-5 mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-2 text-center">What would you like to improve?</h2>
+                    <p class="text-xs text-gray-500 text-center mb-4">Most people fit into one of these – pick the closest</p>
+                    
+                    <div class="space-y-3">
+                        <button @click="selectSmileGoal('invisalign')"
+                                class="w-full p-4 rounded-xl text-left transition-all border-2 bg-white border-gray-200 hover:border-emerald-400 hover:bg-emerald-50 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="ph ph-arrows-out-line-horizontal text-2xl text-emerald-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-900">Straighten my teeth</div>
+                                <div class="text-xs text-gray-500">For crowded, crooked or overlapping teeth</div>
+                            </div>
+                        </button>
+                        
+                        <button @click="selectSmileGoal('whitening')"
+                                class="w-full p-4 rounded-xl text-left transition-all border-2 bg-white border-gray-200 hover:border-emerald-400 hover:bg-emerald-50 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="ph ph-sun text-2xl text-amber-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-900">Whiten my teeth</div>
+                                <div class="text-xs text-gray-500">For yellow, stained or dark teeth</div>
+                            </div>
+                        </button>
+                        
+                        <button @click="selectSmileGoal('bonding_veneers')"
+                                class="w-full p-4 rounded-xl text-left transition-all border-2 bg-white border-gray-200 hover:border-emerald-400 hover:bg-emerald-50 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="ph ph-sparkle text-2xl text-blue-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-900">Fix chips, gaps or shape</div>
+                                <div class="text-xs text-gray-500">For uneven edges, small gaps, worn or chipped teeth</div>
+                            </div>
+                        </button>
+                        
+                        <button @click="selectSmileGoal('all')"
+                                class="w-full p-4 rounded-xl text-left transition-all border-2 bg-white border-gray-200 hover:border-gray-400 hover:bg-gray-50 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="ph ph-question text-2xl text-gray-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-900">Not sure – show me options</div>
+                                <div class="text-xs text-gray-500">See all ways to improve my smile</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                
+                <input type="file" ref="fileInput" @change="handleFileSelect" accept="image/*" class="hidden">
+            </div>
+
+            <div v-if="loading" class="animate-fade-in">
+                <div class="bg-white rounded-2xl shadow-soft p-6 text-center">
+                    
+                    <div class="relative w-48 h-48 mx-auto mb-6 rounded-xl overflow-hidden bg-gray-100">
+                        <img v-if="previewUrl" :src="previewUrl" alt="Scanning" class="w-full h-full object-cover">
+                        
+                        <div class="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent scanner-line"></div>
+                        
+                        <div class="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-emerald-500"></div>
+                        <div class="absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 border-emerald-500"></div>
+                        <div class="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-emerald-500"></div>
+                        <div class="absolute bottom-2 right-2 w-6 h-6 border-b-2 border-r-2 border-emerald-500"></div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-center gap-2">
+                            <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                            <span class="text-sm font-medium text-gray-700">{{ statusMessage }}</span>
+                        </div>
+                        <div class="w-48 mx-auto h-1 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-emerald-500 transition-all duration-300" :style="{ width: scanProgress + '%' }"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="result && !showForm && !showPayment && !bookingComplete" class="animate-fade-in space-y-4">
+                
+                <button @click="result = null" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
+                    <i class="ph ph-arrow-left"></i>
+                    <span class="text-sm">Back</span>
+                </button>
+                
+                <div v-if="selectedTreatment === 'whitening'" class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <div class="flex items-start gap-3">
+                        <i class="ph ph-info text-amber-600 text-xl flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <p class="text-sm text-amber-800 font-medium">About Tax Relief</p>
+                            <p class="text-xs text-amber-700 mt-1">Med 2 tax relief typically applies to restorative treatments (veneers, bonding) when clinically indicated, not standard cosmetic whitening.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-if="smileGoal === 'bonding_veneers'" class="bg-white rounded-2xl shadow-soft p-4">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                        Which treatment interests you?
+                    </label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button @click="selectedTreatment = 'composite_bonding'; loadClinics()"
+                                :class="['px-3 py-3 rounded-lg text-sm font-medium border-2 transition-all',
+                                         selectedTreatment === 'composite_bonding' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                            <i class="ph ph-sparkle text-lg mb-1 text-emerald-500"></i>
+                            <div>Composite Bonding</div>
+                            <div class="text-xs text-gray-500">From €200/tooth</div>
+                        </button>
+                        <button @click="selectedTreatment = 'veneers'; loadClinics()"
+                                :class="['px-3 py-3 rounded-lg text-sm font-medium border-2 transition-all',
+                                         selectedTreatment === 'veneers' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                            <i class="ph ph-star text-lg mb-1 text-emerald-500"></i>
+                            <div>Veneers</div>
+                            <div class="text-xs text-gray-500">From €600/tooth</div>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-soft p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-semibold text-gray-900">
+                            <i class="ph ph-receipt text-emerald-500 mr-1"></i>
+                            Check Your 20% Tax Relief Here
+                        </h3>
+                        <button @click="med2Active = !med2Active" 
+            :class="['w-11 h-6 rounded-full relative transition-colors flex-shrink-0', med2Active ? 'bg-emerald-500' : 'bg-gray-300']">
+            <span :class="['absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all duration-200 shadow',
+                            med2Active ? 'translate-x-5' : 'translate-x-0']"></span>
+            </button>
+                    </div>
+                    
+                    <div v-if="med2Active && !eligibilityChecked" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Who's paying for treatment?</label>
+                            <div class="space-y-2">
+                                <button @click="taxForm.who_is_paying = 'self'" 
+                                        :class="['w-full px-4 py-3 rounded-lg text-sm border-2 transition-all text-left',
+                                                 taxForm.who_is_paying === 'self' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    <i class="ph ph-user mr-2"></i>I'm paying for myself
+                                </button>
+                                <button @click="taxForm.who_is_paying = 'paying_for_other'" 
+                                        :class="['w-full px-4 py-3 rounded-lg text-sm border-2 transition-all text-left',
+                                                 taxForm.who_is_paying === 'paying_for_other' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    <i class="ph ph-hand-heart mr-2"></i>I'm paying for someone else<br>
+                                    <span class="text-xs text-gray-500 ml-6">(my child, parent, spouse)</span>
+                                </button>
+                                <button @click="taxForm.who_is_paying = 'other_paying_for_me'" 
+                                        :class="['w-full px-4 py-3 rounded-lg text-sm border-2 transition-all text-left',
+                                                 taxForm.who_is_paying === 'other_paying_for_me' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    <i class="ph ph-users mr-2"></i>Someone else is paying for me
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div v-if="taxForm.who_is_paying === 'other_paying_for_me'" class="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-200">
+                            <h4 class="text-sm font-semibold text-gray-700">Who is paying for your treatment?</h4>
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="taxForm.payer_relationship = 'parent'" 
+                                        :class="['px-3 py-2 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.payer_relationship === 'parent' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Parent
+                                </button>
+                                <button @click="taxForm.payer_relationship = 'spouse'" 
+                                        :class="['px-3 py-2 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.payer_relationship === 'spouse' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Spouse / Partner
+                                </button>
+                                <button @click="taxForm.payer_relationship = 'child'" 
+                                        :class="['px-3 py-2 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.payer_relationship === 'child' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Son / Daughter
+                                </button>
+                                <button @click="taxForm.payer_relationship = 'other'" 
+                                        :class="['px-3 py-2 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.payer_relationship === 'other' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Other family
+                                </button>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">Payer's Full Name</label>
+                                <input v-model="taxForm.payer_name" type="text" placeholder="Full name"
+                                       class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-emerald-500">
+                                <p class="text-[10px] text-gray-400 mt-1">(This name will appear on the Med 2 form)</p>
+                            </div>
+                        </div>
+                        
+                        <div v-if="taxForm.who_is_paying">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                {{ taxForm.who_is_paying === 'other_paying_for_me' ? 'Does this person pay Irish Income Tax?' : 
+                                   taxForm.who_is_paying === 'paying_for_other' ? 'Do you pay Irish Income Tax?' : 
+                                   'Do you pay Irish Income Tax?' }}
+                            </label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="taxForm.pays_irish_tax = 'paye'" 
+                                        :class="['px-3 py-2.5 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.pays_irish_tax === 'paye' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Yes - PAYE<br>
+                                    <span class="text-xs text-gray-500">(employed)</span>
+                                </button>
+                                <button @click="taxForm.pays_irish_tax = 'self_assessed'" 
+                                        :class="['px-3 py-2.5 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.pays_irish_tax === 'self_assessed' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Yes - Self-Assessment
+                                </button>
+                                <button @click="taxForm.pays_irish_tax = 'no'" 
+                                        :class="['px-3 py-2.5 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.pays_irish_tax === 'no' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    No
+                                </button>
+                                <button @click="taxForm.pays_irish_tax = 'not_sure'" 
+                                        :class="['px-3 py-2.5 rounded-lg text-sm border-2 transition-all',
+                                                 taxForm.pays_irish_tax === 'not_sure' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Not sure
+                                </button>
+                            </div>
+                            <button @click="showHelpModal = true" class="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 mt-2">
+                                <i class="ph ph-question"></i>
+                                Need help?
+                            </button>
+                        </div>
+                        
+                        <button @click="checkEligibility" 
+                                :disabled="!taxForm.who_is_paying || !taxForm.pays_irish_tax"
+                                :class="['w-full py-3 rounded-xl font-medium transition-all',
+                                         taxForm.who_is_paying && taxForm.pays_irish_tax
+                                             ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                             : 'bg-gray-200 text-gray-400 cursor-not-allowed']">
+                            Check Eligibility
+                        </button>
+                    </div>
+                    
+                    <div v-if="eligibilityChecked && eligibilityResult.is_eligible" class="space-y-3">
+                        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-emerald-500">
+                                    <i class="ph ph-check text-white"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-bold text-gray-900 mb-1">✅ You're Eligible for Tax Relief!</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">{{ getTreatmentDisplayName(selectedTreatment) }} (est.)</span>
+                                <span class="font-medium text-gray-900">€{{ selectedClinic ? getClinicPrice(selectedClinic).toLocaleString() : '3,200' }}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-emerald-600">Tax Relief (20%)</span>
+                                <span class="font-medium text-emerald-600">-€{{ selectedClinic ? calculateTaxRelief(selectedClinic).toLocaleString() : '640' }}</span>
+                            </div>
+                            <div class="border-t border-gray-300 my-1"></div>
+                            <div class="flex justify-between text-base font-semibold">
+                                <span class="text-gray-900">Your Net Cost</span>
+                                <span class="font-heading text-emerald-600">€{{ selectedClinic ? getClinicNetPrice(selectedClinic).toLocaleString() : '2,560' }}</span>
+                            </div>
+                        </div>
+                        
+                        <p class="text-xs text-gray-600 text-center">We'll prepare your Med 2 form automatically after booking.</p>
+                        
+                        <div class="flex items-center gap-3">
+                            <button @click="showMed2Preview = true" class="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700">
+                                <i class="ph ph-file-pdf"></i>
+                                Preview Med 2 Form
+                            </button>
+                            <button @click="resetEligibility" class="text-xs text-gray-500 underline">Check again</button>
+                        </div>
+                    </div>
+                    
+                    <div v-if="eligibilityChecked && !eligibilityResult.is_eligible" class="space-y-3">
+                        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-amber-500">
+                                    <i class="ph ph-warning text-white"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-bold text-gray-900 mb-1">❌ Tax Relief Not Available</p>
+                                    <p class="text-xs text-gray-600">{{ eligibilityResult.message }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div v-if="eligibilityResult.strategy_tip" class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                            <p class="text-xs font-semibold text-blue-800 mb-2">💡 Strategy Tip:</p>
+                            <p class="text-xs text-blue-700">{{ eligibilityResult.strategy_tip }}</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 gap-2">
+                            <button @click="resetEligibility" class="py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600">
+                                Change Who's Paying
+                            </button>
+                            <button @click="eligibilityChecked = false; med2Active = false" class="py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50">
+                                Continue Without Relief
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <div class="flex items-start gap-3">
+                        <i class="ph ph-info text-amber-500 text-lg flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <p class="text-sm font-medium text-amber-800">Important: Prices are estimates</p>
+                            <p class="text-xs text-amber-700 mt-1">Final treatment costs will be confirmed after your consultation. The dentist will assess your specific needs and provide an accurate quote.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-heading font-semibold text-gray-900">
+                            <i class="ph ph-map-pin text-emerald-500 mr-1"></i>
+                            Clondalkin Clinics
+                        </h3>
+                        <span class="text-sm text-gray-500">{{ clinics.length }} options</span>
+                    </div>
+                    
+                    <div v-if="eligibilityResult.is_eligible && med2Active" class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-3">
+                        <p class="text-xs text-emerald-700">
+                            <strong>Your treatment:</strong> {{ getTreatmentDisplayName(selectedTreatment) }}<br>
+                            <strong>Tax relief:</strong> €{{ selectedClinic ? calculateTaxRelief(selectedClinic).toLocaleString() : '640' }} (eligible ✓)
+                        </p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div v-for="clinic in clinics" :key="clinic.id" 
+                             class="clinic-card bg-white rounded-2xl shadow-card p-4">
+                            
+                            <div class="flex items-start justify-between mb-3">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <h4 class="font-heading font-semibold text-gray-900">{{ clinic.clinic_name }}</h4>
+                                        <span v-if="clinic.verified" class="text-emerald-500">
+                                            <i class="ph-fill ph-seal-check"></i>
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-500">
+                                        <i class="ph ph-map-pin text-emerald-500"></i>
+                                        {{ clinic.location }}
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="flex items-center gap-1 text-amber-500">
+                                        <i class="ph-fill ph-star text-sm"></i>
+                                        <span class="text-sm font-semibold text-gray-900">{{ clinic.rating }}</span>
+                                    </div>
+                                    <p class="text-[10px] text-gray-400">({{ clinic.review_count }} reviews)</p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-50 rounded-lg p-2 mb-3">
+                                <p class="text-xs text-gray-600 italic">"{{ clinic.top_review }}"</p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">{{ getTreatmentDisplayName(selectedTreatment) }}:</span>
+                                    <span class="font-heading font-bold text-gray-900">€{{ getClinicPrice(clinic).toLocaleString() }}</span>
+                                </div>
+                                <div v-if="med2Active && eligibilityResult.is_eligible" class="flex justify-between items-center mt-1">
+                                    <span class="text-sm text-emerald-600 font-semibold">After relief:</span>
+                                    <span class="font-heading font-bold text-emerald-600">€{{ getClinicNetPrice(clinic).toLocaleString() }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="pt-3 border-t border-gray-100">
+                                <p class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-2">Available Times</p>
+                                <div class="flex flex-wrap gap-2 mb-3">
+                                    <button v-for="slot in clinic.available_slots" :key="slot"
+                                            @click="selectSlot(clinic, slot)"
+                                            :class="[
+                                                'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
+                                                clinic.selected_slot === slot 
+                                                    ? 'bg-emerald-500 text-white border-emerald-500' 
+                                                    : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-emerald-300'
+                                            ]">
+                                        {{ slot }}
+                                    </button>
+                                </div>
+                                
+                                <button @click="startBooking(clinic)" 
+                                        :disabled="!clinic.selected_slot"
+                                        :class="[
+                                            'w-full py-3 rounded-xl font-semibold transition-all',
+                                            clinic.selected_slot 
+                                                ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
+                                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        ]">
+                                    {{ clinic.selected_slot ? 'Book Consultation' : 'Select a time slot' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="showForm && !showPayment" class="animate-fade-in space-y-4">
+                
+                <button @click="showForm = false" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
+                    <i class="ph ph-arrow-left"></i>
+                    <span class="text-sm">Back to clinics</span>
+                </button>
+                
+                <div class="bg-white rounded-2xl shadow-soft p-5">
+                    <h3 class="font-heading font-bold text-xl text-gray-900 mb-1">Your Details</h3>
+                    <p class="text-sm text-gray-600 mb-4">Booking at {{ selectedClinic?.clinic_name }}</p>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Full Name *</label>
+                            <input v-model="bookingData.name" type="text" placeholder="John Smith"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Phone *</label>
+                            <input v-model="bookingData.phone" type="tel" placeholder="087 123 4567"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Email</label>
+                            <input v-model="bookingData.email" type="email" placeholder="john@example.com"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">PPSN * (for Med 2)</label>
+                            <input v-model="bookingData.ppsn" type="text" placeholder="1234567T"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 uppercase">
+                            <p class="text-[10px] text-gray-400 mt-1">Required for tax relief claim</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Address *</label>
+                            <textarea v-model="bookingData.address" rows="2" placeholder="123 Main Street, Dublin 22"
+                                      class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+                        </div>
+                        
+                        <div v-if="taxForm.who_is_paying === 'other_paying_for_me'" class="bg-amber-50 rounded-xl p-4 space-y-3">
+                            <h4 class="text-sm font-semibold text-amber-800">
+                                <i class="ph ph-info mr-1"></i>Payer Details (for Med
