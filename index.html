@@ -8,7 +8,7 @@
 <!-- Privacy-friendly analytics by Plausible -->
 <script async src="https://plausible.io/js/pa-OLxXYpT1VN6HnlQqkKLNc.js"></script>
 <script>
-window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.iniFt||function(i){plausible.o=i||{}};
 plausible.init()
 </script>
 
@@ -1346,10 +1346,12 @@ toastIdCounter: 0,
 triageStep: 0,
 selectedRedFlags: [],
 redFlags: [
-{ id: 'breathing_difficulty', label: 'Difficulty breathing or swallowing', icon: '😮‍💨' },
-{ id: 'swelling_spreading', label: 'Swelling spreading to eye, neck, or under tongue', icon: '🔴' },
-{ id: 'fever_with_swelling', label: 'Fever with facial swelling', icon: '🤒' },
-{ id: 'uncontrolled_bleeding', label: 'Bleeding that won\'t stop (20+ minutes)', icon: '🩸' }
+{ id: 'breathing_difficulty', label: 'Difficulty breathing or swallowing, or opening your mouth', icon: 'ph-wind' },
+{ id: 'swelling_spreading', label: 'Swelling spreading to eye, neck, under the tongue, or throat', icon: 'ph ph-warning-circle' },
+{ id: 'fever_with_swelling', label: 'Fever with facial swelling', icon: 'ph ph-thermometer' },
+{ id: 'uncontrolled_bleeding', label: 'Bleeding that won\'t stop (20+ minutes)', icon: 'ph ph-drop' },
+{ id: 'tooth_knocked_out', label: 'Whole tooth knocked out', icon: 'ph ph-tooth' },
+{ id: 'facial_trauma', label: 'Any facial trauamas (hit to the face)', icon: 'ph ph-warning' }
 ],
 triageData: { painLevel: null, painWorsening: false, sleepDisrupted: false, chiefComplaint: '', symptomDuration: 24 },
 triageLoading: false,
