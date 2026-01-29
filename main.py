@@ -140,9 +140,7 @@ class UrgencyLevel(str, Enum):
 class RedFlag(str, Enum):
     BREATHING_DIFFICULTY = "breathing_difficulty"
     SWELLING_SPREADING = "swelling_spreading"
-    FEVER_UNWELL = "fever_unwell"
     UNCONTROLLED_BLEEDING = "uncontrolled_bleeding"
-    TOOTH_KNOCKED_OUT = "tooth_knocked_out"
     FACIAL_TRAUMA = "facial_trauma"
 
 # ============================================================
