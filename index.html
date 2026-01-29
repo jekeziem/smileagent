@@ -532,6 +532,9 @@
         <!-- ============================================ -->
         <div v-if="appMode === 'cosmetic'" class="animate-fade-in">
             
+            <!-- Hidden file input (always accessible in cosmetic mode) -->
+            <input type="file" ref="fileInput" @change="handleFileSelect" accept="image/*" class="hidden">
+            
             <!-- Back to Mode Selection -->
             <button v-if="!result && !loading" @click="goHome" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4">
                 <i class="ph ph-arrow-left"></i>
@@ -597,9 +600,6 @@
                         </button>
                     </div>
                 </div>
-                
-                <!-- Hidden file input (keep for potential future use) -->
-                <input type="file" ref="fileInput" @change="handleFileSelect" accept="image/*" class="hidden">
             </div>
 
             <!-- ============================================ -->
@@ -646,6 +646,39 @@
                     <span class="text-sm">Back</span>
                 </button>
                 
+                <!-- Show All Options - Treatment Selector -->
+                <div v-if="smileGoal === 'all' && !selectedTreatment" class="bg-white rounded-2xl shadow-soft p-4">
+                    <h3 class="font-semibold text-gray-900 mb-2 text-center">Choose a treatment to compare prices</h3>
+                    <p class="text-xs text-gray-500 text-center mb-4">Select one to see clinic pricing</p>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <button @click="selectedTreatment = 'invisalign'; loadClinics()"
+                                class="p-3 rounded-xl text-center transition-all border-2 border-gray-200 hover:border-emerald-400 hover:bg-emerald-50">
+                            <i class="ph ph-arrows-out-line-horizontal text-2xl text-emerald-500 block mb-1"></i>
+                            <div class="font-medium text-gray-900 text-sm">Invisalign</div>
+                            <div class="text-xs text-gray-500">Straighten teeth</div>
+                        </button>
+                        <button @click="selectedTreatment = 'whitening'; med2Active = false; loadClinics()"
+                                class="p-3 rounded-xl text-center transition-all border-2 border-gray-200 hover:border-amber-400 hover:bg-amber-50">
+                            <i class="ph ph-sun text-2xl text-amber-500 block mb-1"></i>
+                            <div class="font-medium text-gray-900 text-sm">Whitening</div>
+                            <div class="text-xs text-gray-500">Brighter smile</div>
+                        </button>
+                        <button @click="selectedTreatment = 'composite_bonding'; loadClinics()"
+                                class="p-3 rounded-xl text-center transition-all border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50">
+                            <i class="ph ph-sparkle text-2xl text-blue-500 block mb-1"></i>
+                            <div class="font-medium text-gray-900 text-sm">Bonding</div>
+                            <div class="text-xs text-gray-500">From €200/tooth</div>
+                        </button>
+                        <button @click="selectedTreatment = 'veneers'; loadClinics()"
+                                class="p-3 rounded-xl text-center transition-all border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50">
+                            <i class="ph ph-star text-2xl text-blue-500 block mb-1"></i>
+                            <div class="font-medium text-gray-900 text-sm">Veneers</div>
+                            <div class="text-xs text-gray-500">From €600/tooth</div>
+                        </button>
+                    </div>
+                </div>
+                
                 <!-- Whitening Med 2 Disclaimer -->
                 <div v-if="selectedTreatment === 'whitening'" class="bg-amber-50 border border-amber-200 rounded-xl p-4">
                     <div class="flex items-start gap-3">
@@ -658,7 +691,7 @@
                 </div>
                 
                 <!-- Bonding/Veneers Sub-Choice -->
-                <div v-if="smileGoal === 'bonding_veneers'" class="bg-white rounded-2xl shadow-soft p-4">
+                <div v-if="smileGoal === 'bonding_veneers' && selectedTreatment" class="bg-white rounded-2xl shadow-soft p-4">
                     <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Which treatment interests you?</label>
                     <div class="grid grid-cols-2 gap-2">
                         <button @click="selectedTreatment = 'composite_bonding'; loadClinics()"
@@ -674,6 +707,35 @@
                             <i class="ph ph-star text-lg mb-1 text-emerald-500 block"></i>
                             <div>Veneers</div>
                             <div class="text-xs text-gray-500">From €600/tooth</div>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Treatment Confirmation Banner (for all goals except bonding_veneers which has its own) -->
+                <div v-if="selectedTreatment && smileGoal !== 'bonding_veneers'" class="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <i :class="[
+                                selectedTreatment === 'invisalign' ? 'ph ph-arrows-out-line-horizontal text-emerald-600' : '',
+                                selectedTreatment === 'whitening' ? 'ph ph-sun text-amber-500' : '',
+                                selectedTreatment === 'composite_bonding' ? 'ph ph-sparkle text-blue-500' : '',
+                                selectedTreatment === 'veneers' ? 'ph ph-star text-blue-500' : '',
+                                'text-2xl'
+                            ]"></i>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">Your treatment: {{ getTreatmentDisplayName(selectedTreatment) }}</p>
+                                <p class="text-xs text-gray-600">Compare prices below</p>
+                            </div>
+                        </div>
+                        <button v-if="smileGoal === 'all'" 
+                                @click="selectedTreatment = null; med2Active = true; clinics = []" 
+                                class="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
+                            ← Back to options
+                        </button>
+                        <button v-else 
+                                @click="smileGoal = null; selectedTreatment = null; result = null" 
+                                class="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
+                            Change
                         </button>
                     </div>
                 </div>
@@ -881,7 +943,7 @@
                 </div>
                 
                 <!-- Clinics List (ORIGINAL WITH REVIEWS) -->
-                <div>
+                <div v-if="selectedTreatment">
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="font-heading font-semibold text-gray-900">
                             <i class="ph ph-map-pin text-emerald-500 mr-1"></i>
@@ -968,6 +1030,23 @@
                                     {{ clinic.selected_slot ? 'Book Consultation' : 'Select a time slot' }}
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- AI Photo Analysis Option (Optional Helper) -->
+                <div v-if="selectedTreatment && !usedAI" class="bg-gradient-to-r from-gray-50 to-emerald-50 rounded-2xl p-4 border border-gray-200">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
+                            <i class="ph ph-camera text-emerald-500 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-semibold text-gray-900 text-sm">Want a personalized recommendation?</p>
+                            <p class="text-xs text-gray-600 mt-0.5">Upload a smile photo for AI analysis to confirm the best treatment for you.</p>
+                            <button @click="triggerUpload()" class="mt-2 text-xs font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                                <i class="ph ph-upload-simple"></i>
+                                Upload photo (optional)
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1613,19 +1692,25 @@ createApp({
             if (goal === 'invisalign') {
                 this.selectedTreatment = 'invisalign';
                 this.med2Active = true;
+                this.loadClinics();
+                this.result = { status: 'success', photo_id: null, saved_for_med2: false, diagnosis: null };
             } else if (goal === 'whitening') {
                 this.selectedTreatment = 'whitening';
                 this.med2Active = false;
+                this.loadClinics();
+                this.result = { status: 'success', photo_id: null, saved_for_med2: false, diagnosis: null };
             } else if (goal === 'bonding_veneers') {
                 this.selectedTreatment = 'composite_bonding';
                 this.med2Active = true;
-            } else {
+                this.loadClinics();
+                this.result = { status: 'success', photo_id: null, saved_for_med2: false, diagnosis: null };
+            } else if (goal === 'all') {
+                // Show treatment picker - don't load clinics yet
                 this.selectedTreatment = null;
                 this.med2Active = true;
+                this.result = { status: 'success', photo_id: null, saved_for_med2: false, diagnosis: null };
             }
             
-            this.loadClinics();
-            this.result = { status: 'success', photo_id: null, saved_for_med2: false, diagnosis: null };
             plausible('Selected Smile Goal', { props: { goal: goal } });
         },
         
@@ -1652,7 +1737,13 @@ createApp({
             }
             this.photoFile = file;
             const reader = new FileReader();
-            reader.onload = (e) => { this.previewUrl = e.target.result; };
+            reader.onload = (e) => { 
+                this.previewUrl = e.target.result;
+                // Auto-trigger analysis if we're already on step 2 (treatment selected)
+                if (this.selectedTreatment && this.result) {
+                    this.analyseSmile();
+                }
+            };
             reader.readAsDataURL(file);
         },
         
@@ -1840,7 +1931,15 @@ createApp({
                 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Booking failed');
+                    let errorMsg = 'Booking failed';
+                    if (typeof errorData.detail === 'string') {
+                        errorMsg = errorData.detail;
+                    } else if (Array.isArray(errorData.detail)) {
+                        errorMsg = errorData.detail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
+                    } else if (errorData.detail) {
+                        errorMsg = JSON.stringify(errorData.detail);
+                    }
+                    throw new Error(errorMsg);
                 }
                 
                 const data = await response.json();
