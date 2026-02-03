@@ -106,7 +106,7 @@ BASE_DIR = Path(__file__).resolve().parent
 
 import os
 
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://smileagent.ie/").split(",")
 
 app.add_middleware(
     CORSMiddleware,
