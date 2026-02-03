@@ -61,7 +61,7 @@ cipher_suite = Fernet(
 # APP INIT (MUST COME BEFORE DECORATORS)
 # --------------------------------------------------
 
-app = FastAPI()
+app = FastAPI(title="SmileAgent API", version="4.0.0")
 
 # --------------------------------------------------
 # UTILS
@@ -99,10 +99,9 @@ except ImportError:
     print("⚠️ reportlab not installed - run: pip install reportlab")
 
 # ============================================================
-# APP INITIALIZATION
+# APP CONFIGURATION
 # ============================================================
 
-app = FastAPI(title="SmileAgent API", version="4.0.0")
 BASE_DIR = Path(__file__).resolve().parent
 
 import os
