@@ -768,12 +768,12 @@ class TriageOutput(BaseModel):
     self_care_tips: List[str] = []
 
 class EmergencyClinicSearch(BaseModel):
-    latitude: float
-    longitude: float
+    latitude: float = 53.3498  # Dublin City Centre default
+    longitude: float = -6.2603  # Dublin City Centre default
     urgency: str = "green"
     medical_card_only: bool = False
     prsi_only: bool = False
-    max_distance_km: float = 15.0
+    max_distance_km: float = 50.0  # Cover all of Dublin county
 
 class BriefInput(BaseModel):
     patient_name: Optional[str] = None
@@ -1485,6 +1485,41 @@ def get_clinics(treatment: Optional[str] = None):
         result.append(clinic_data)
     
     return {"clinics": result}
+
+@app.get("/api/clinics/all")
+def get_all_clinics():
+    """Return ALL clinics with full data - no filtering."""
+    return {
+        "clinics": CLINICS,
+        "count": len(CLINICS),
+        "last_verified": "2026-02-03"
+    }
+
+@app.get("/api/clinics/emergency-list")
+def get_emergency_clinics_list():
+    """Return all clinics that offer same-day emergency appointments."""
+    emergency_clinics = []
+    for clinic in CLINICS:
+        if clinic.get("emergency_slots", {}).get("offers_same_day", False):
+            emergency_clinics.append({
+                "id": clinic["id"],
+                "clinic_name": clinic["clinic_name"],
+                "location": clinic["location"],
+                "eircode": clinic["eircode"],
+                "phone": clinic["phone"],
+                "coordinates": clinic["coordinates"],
+                "emergency_exam_fee": clinic.get("pricing", {}).get("emergency_exam", 0),
+                "accepts_medical_card": clinic.get("medical_card", {}).get("accepts", False),
+                "accepts_prsi": clinic.get("prsi_dtbs", False),
+                "typical_wait_hours": clinic.get("emergency_slots", {}).get("typical_wait_hours", 0),
+                "hours": clinic.get("hours", {}),
+                "rating": clinic.get("rating"),
+                "website": clinic.get("website")
+            })
+    return {
+        "clinics": emergency_clinics,
+        "count": len(emergency_clinics)
+    }
 
 # ============================================================
 # NEW: TRIAGE ENDPOINTS
