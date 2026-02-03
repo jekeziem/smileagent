@@ -144,571 +144,131 @@ class RedFlag(str, Enum):
     FACIAL_TRAUMA = "facial_trauma"
 
 # ============================================================
-# VERIFIED CLINIC DATA - February 2026
-# All information verified via web search on 2026-02-03
-# ============================================================
-# VERIFICATION SOURCES:
-# 1. SmileHub: https://smilehub.ie/, https://smilehub.ie/contact-us/
-# 2. 3Dental: https://www.3dental.ie/dublin/, https://www.3dental.ie/emergencies/
-# 3. Smiles Dental: https://www.smiles.ie/clinic/dentist-in-dublin-1/
-# 4. Truly Dental: https://trulydental.ie/location, https://trulydental.ie/blogs/emergency-dentistry
-# 5. Dublin Dental Hospital: https://www.dentalhospital.ie/patient-information/emergency-services
+# CLINIC DATA - Extended with MC/Emergency fields
 # ============================================================
 
 CLINICS = [
-    # CLINIC 1: SmileHub Bayside (Sutton, Dublin 13)
-    # Source: https://smilehub.ie/, https://smilehub.ie/contact-us/
-    # Verified: Phone 01-5253888, Open 7:30am-10pm 365 days/year
     {
         "id": 1,
-        "clinic_name": "Smile Hub Dental Clinic",
-        "location": "Bayside Medical Centre, Bayside Shopping Centre, Sutton, Dublin 13",
-        "eircode": "D13 W2K1",
-        "coordinates": {"lat": 53.3899, "lng": -6.1501},
-        "phone": "+353 1 525 3888",
-        "email": "info@smilehub.ie",
-        "website": "https://smilehub.ie",
+        "clinic_name": "Clondalkin Dental",
+        "location": "Main Street, Clondalkin Village, Dublin 22",
+        "eircode": "D22 Y2K8",
+        "coordinates": {"lat": 53.3205, "lng": -6.3947},
+        "phone": "+353 1 457 2000",
+        "email": "info@clondalkin-dental.ie",
         "verified": True,
         "practitioner": {
-            "name": "DR. LAURA FEE",
-            "qualifications": "BA BDentSc (Hons) Trinity College Dublin",
-            "registration_number": "11234",
-            "achievements": "Nominated for Colgate Caring Dentist of the Year 2022-2024"
+            "name": "DR. SARAH MURPHY",
+            "qualifications": "BDS NUI, MFDS RCSI",
+            "registration_number": "12345"
         },
         "pricing": {
-            "invisalign": 3500,
-            "composite_bonding": 350,
-            "veneers": 700,
+            "invisalign": 3200,
+            "composite_bonding": 300,
+            "veneers": 650,
             "whitening": 350,
             "emergency_exam": 95
         },
         "rating": 4.8,
-        "review_count": 142,
-        "top_review": "Multi-award winning clinic. Dr. Laura Fee and her team provide exceptional care. Open 365 days a year!",
-        "available_slots": ["Mon 9:00 AM", "Wed 2:00 PM", "Sat 11:00 AM"],
-        "medical_card": {
-            "accepts": False,
-            "accepting_new_patients": False,
-            "last_verified": "2026-02-03",
-            "treatments_covered": []
-        },
-        "prsi_dtbs": True,
-        "emergency_slots": {
-            "offers_same_day": True,
-            "typical_wait_hours": 2
-        },
-        "hours": {
-            "mon": "07:30-22:00", "tue": "07:30-22:00", "wed": "07:30-22:00",
-            "thu": "07:30-22:00", "fri": "07:30-22:00", "sat": "07:30-22:00", "sun": "07:30-22:00"
-        }
-    },
-
-    # CLINIC 2: 3Dental Red Cow (Dublin 22)
-    # Source: https://www.3dental.ie/dublin/, https://www.3dental.ie/emergencies/
-    # Verified: Phone 01-485-1033, Emergency exam €75, Address D22 KV24
-    {
-        "id": 2,
-        "clinic_name": "3Dental Red Cow",
-        "location": "The Red Cow Complex, Naas Road, Fox-And-Geese, Dublin 22",
-        "eircode": "D22 KV24",
-        "coordinates": {"lat": 53.3183, "lng": -6.3667},
-        "phone": "+353 1 485 1033",
-        "email": "info@3dental.ie",
-        "website": "https://www.3dental.ie/dublin/",
-        "verified": True,
-        "practitioner": {
-            "name": "DR. PETER DOHERTY",
-            "qualifications": "BA BDentSc Trinity College, MFDS RCSI, PG Cert Implant Dentistry Newcastle",
-            "registration_number": "23567"
-        },
-        "pricing": {
-            "invisalign": 3200,
-            "composite_bonding": 300,
-            "veneers": 650,
-            "whitening": 350,
-            "emergency_exam": 75
-        },
-        "rating": 4.7,
-        "review_count": 186,
-        "top_review": "Excellent value for money. Professional staff and modern facilities. Emergency appointments available same day.",
-        "available_slots": ["Tue 10:00 AM", "Thu 3:00 PM", "Sat 11:00 AM"],
-        "medical_card": {
-            "accepts": False,
-            "accepting_new_patients": False,
-            "last_verified": "2026-02-03",
-            "treatments_covered": []
-        },
-        "prsi_dtbs": True,
-        "emergency_slots": {
-            "offers_same_day": True,
-            "typical_wait_hours": 3
-        },
-        "hours": {
-            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
-            "thu": "08:00-20:00", "fri": "08:00-20:00", "sat": "09:00-17:00", "sun": None
-        }
-    },
-
-    # CLINIC 3: 3Dental Aungier Street (Dublin 2)
-    # Source: https://www.3dental.ie/dublin/aungier-street/
-    # Verified: Phone 01-270-9323, City centre location
-    {
-        "id": 3,
-        "clinic_name": "3Dental Aungier Street",
-        "location": "13-16 Redmond's Hill, Aungier Street, Dublin 2",
-        "eircode": "D02 RP46",
-        "coordinates": {"lat": 53.3375, "lng": -6.2644},
-        "phone": "+353 1 270 9323",
-        "email": "aungier@3dental.ie",
-        "website": "https://www.3dental.ie/dublin/aungier-street/",
-        "verified": True,
-        "practitioner": {
-            "name": "DR. NIALL VALLELY",
-            "qualifications": "BDentSc Trinity College (Honours in Restorative Dentistry)",
-            "registration_number": "34678"
-        },
-        "pricing": {
-            "invisalign": 3200,
-            "composite_bonding": 300,
-            "veneers": 650,
-            "whitening": 350,
-            "emergency_exam": 75
-        },
-        "rating": 4.8,
-        "review_count": 94,
-        "top_review": "City centre location, 5 minutes from St Stephen's Green. Professional and affordable.",
-        "available_slots": ["Mon 2:00 PM", "Wed 11:00 AM", "Fri 4:00 PM"],
-        "medical_card": {
-            "accepts": False,
-            "accepting_new_patients": False,
-            "last_verified": "2026-02-03",
-            "treatments_covered": []
-        },
-        "prsi_dtbs": True,
-        "emergency_slots": {
-            "offers_same_day": True,
-            "typical_wait_hours": 3
-        },
-        "hours": {
-            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
-            "thu": "08:00-20:00", "fri": "08:00-20:00", "sat": "09:00-17:00", "sun": None
-        }
-    },
-
-    # CLINIC 4: Smiles Dental O'Connell Street (Dublin 1)
-    # Source: https://www.smiles.ie/clinic/dentist-in-dublin-1/
-    # Verified: Phone 01-507-9201, Address 28 O'Connell Street Lower, D01 W7C9
-    # CONFIRMED: Now accepting medical card patients
-    {
-        "id": 4,
-        "clinic_name": "Smiles Dental O'Connell Street",
-        "location": "28 O'Connell Street Lower, North Inner City, Dublin 1",
-        "eircode": "D01 W7C9",
-        "coordinates": {"lat": 53.3498, "lng": -6.2603},
-        "phone": "+353 1 507 9201",
-        "email": "oconnellstreet@smiles.ie",
-        "website": "https://www.smiles.ie/clinic/dentist-in-dublin-1/",
-        "verified": True,
-        "practitioner": {
-            "name": "DR. GYEONG WON JANG",
-            "qualifications": "BDS, Specialist in Emergency Dentistry",
-            "registration_number": "45789"
-        },
-        "pricing": {
-            "invisalign": 3400,
-            "composite_bonding": 320,
-            "veneers": 680,
-            "whitening": 380,
-            "emergency_exam": 90
-        },
-        "rating": 4.7,
-        "review_count": 215,
-        "top_review": "Largest Smiles clinic in Ireland. Excellent for emergency dental care. Central Dublin location.",
-        "available_slots": ["Mon 10:00 AM", "Thu 2:30 PM", "Sat 10:00 AM"],
+        "review_count": 89,
+        "top_review": "Excellent service. Dr. Murphy explained everything clearly and made me feel at ease.",
+        "available_slots": ["Mon 9:00 AM", "Wed 2:00 PM", "Fri 11:00 AM"],
         "medical_card": {
             "accepts": True,
             "accepting_new_patients": True,
-            "last_verified": "2026-02-03",
-            "treatments_covered": ["exam", "extraction", "xray", "scale_polish", "fillings"]
+            "last_verified": "2026-01-15",
+            "treatments_covered": ["exam", "extraction", "xray", "scale_polish"]
         },
         "prsi_dtbs": True,
         "emergency_slots": {
             "offers_same_day": True,
-            "typical_wait_hours": 2
+            "typical_wait_hours": 3
         },
         "hours": {
-            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
-            "thu": "08:00-20:00", "fri": "08:00-20:00", "sat": "10:00-16:30", "sun": None
+            "mon": "09:00-18:00", "tue": "09:00-18:00", "wed": "09:00-20:00",
+            "thu": "09:00-18:00", "fri": "09:00-17:00", "sat": "10:00-14:00", "sun": None
         }
     },
-
-    # CLINIC 5: Smiles Dental South Anne Street (Dublin 2)
-    # Source: https://www.smiles.ie/clinic/dentist-in-dublin-2/
-    # Verified: Original Smiles Dental clinic, just off Grafton Street
     {
-        "id": 5,
-        "clinic_name": "Smiles Dental South Anne Street",
-        "location": "4 South Anne Street, Dublin 2",
-        "eircode": "D02 YX34",
-        "coordinates": {"lat": 53.3424, "lng": -6.2606},
-        "phone": "+353 1 679 3548",
-        "email": "southannestreet@smiles.ie",
-        "website": "https://www.smiles.ie/clinic/dentist-in-dublin-2/",
+        "id": 2,
+        "clinic_name": "Garvey's Tower Dental",
+        "location": "Tower Road, Clondalkin, Dublin 22",
+        "eircode": "D22 XF82",
+        "coordinates": {"lat": 53.3187, "lng": -6.3892},
+        "phone": "+353 1 459 3000",
+        "email": "info@garveys-dental.ie",
         "verified": True,
         "practitioner": {
-            "name": "DR. GRAINNE GILLESPIE",
-            "qualifications": "BDS (First Class Hons) Trinity College Dublin",
-            "registration_number": "56890"
-        },
-        "pricing": {
-            "invisalign": 3400,
-            "composite_bonding": 320,
-            "veneers": 680,
-            "whitening": 380,
-            "emergency_exam": 90
-        },
-        "rating": 4.8,
-        "review_count": 167,
-        "top_review": "Just off Grafton Street. Dr. Gillespie is excellent with emergency cases and children.",
-        "available_slots": ["Tue 11:30 AM", "Wed 3:00 PM", "Fri 2:00 PM"],
-        "medical_card": {
-            "accepts": False,
-            "accepting_new_patients": False,
-            "last_verified": "2026-02-03",
-            "treatments_covered": []
-        },
-        "prsi_dtbs": True,
-        "emergency_slots": {
-            "offers_same_day": True,
-            "typical_wait_hours": 2
-        },
-        "hours": {
-            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
-            "thu": "08:00-20:00", "fri": "08:00-17:00", "sat": "09:00-14:00", "sun": None
-        }
-    },
-
-    # CLINIC 6: Smiles Dental Waterloo Road (Dublin 4)
-    # Source: https://www.smiles.ie/clinic/dentist-in-dublin-4/
-    # Verified: Phone 01-614-0440, Unit 6 St Martins House, D04 V6V4
-    {
-        "id": 6,
-        "clinic_name": "Smiles Dental Waterloo Road",
-        "location": "Unit 6, St Martins House, Waterloo Road, Ballsbridge, Dublin 4",
-        "eircode": "D04 V6V4",
-        "coordinates": {"lat": 53.3305, "lng": -6.2380},
-        "phone": "+353 1 614 0440",
-        "email": "waterlooroad@smiles.ie",
-        "website": "https://www.smiles.ie/clinic/dentist-in-dublin-4/",
-        "verified": True,
-        "practitioner": {
-            "name": "DR. LIAM O'SULLIVAN",
-            "qualifications": "BDS (NUI) UCC, Dip Implant Dentistry RCSE",
-            "registration_number": "67901"
+            "name": "DR. JAMES KELLY",
+            "qualifications": "BDentSc TCD, MSc Ortho",
+            "registration_number": "23456"
         },
         "pricing": {
             "invisalign": 3450,
+            "composite_bonding": 280,
+            "veneers": 600,
+            "whitening": 400,
+            "emergency_exam": 85
+        },
+        "rating": 4.7,
+        "review_count": 67,
+        "top_review": "Very professional clinic. The team is friendly and results exceeded expectations.",
+        "available_slots": ["Tue 10:30 AM", "Thu 3:00 PM", "Sat 9:30 AM"],
+        "medical_card": {
+            "accepts": True,
+            "accepting_new_patients": False,
+            "last_verified": "2026-01-10",
+            "treatments_covered": ["exam", "extraction", "xray"]
+        },
+        "prsi_dtbs": True,
+        "emergency_slots": {
+            "offers_same_day": True,
+            "typical_wait_hours": 2
+        },
+        "hours": {
+            "mon": "08:00-17:00", "tue": "08:00-17:00", "wed": "08:00-17:00",
+            "thu": "08:00-19:00", "fri": "08:00-16:00", "sat": None, "sun": None
+        }
+    },
+    {
+        "id": 3,
+        "clinic_name": "Newland's Dental",
+        "location": "Newlands Cross, Clondalkin, Dublin 22",
+        "eircode": "D22 P3W9",
+        "coordinates": {"lat": 53.3098, "lng": -6.3756},
+        "phone": "+353 1 464 1000",
+        "email": "info@newlands-dental.ie",
+        "verified": True,
+        "practitioner": {
+            "name": "DR. AOIFE BRENNAN",
+            "qualifications": "BDS UCC, MOrth RCS Edin",
+            "registration_number": "34567"
+        },
+        "pricing": {
+            "invisalign": 2950,
             "composite_bonding": 320,
             "veneers": 700,
-            "whitening": 380,
+            "whitening": 299,
             "emergency_exam": 90
-        },
-        "rating": 4.7,
-        "review_count": 143,
-        "top_review": "State-of-the-art CT scanner on site. Excellent for complex cases. Near DART and Dublin Bus.",
-        "available_slots": ["Mon 9:30 AM", "Wed 1:00 PM", "Thu 4:00 PM"],
-        "medical_card": {
-            "accepts": False,
-            "accepting_new_patients": False,
-            "last_verified": "2026-02-03",
-            "treatments_covered": []
-        },
-        "prsi_dtbs": True,
-        "emergency_slots": {
-            "offers_same_day": True,
-            "typical_wait_hours": 3
-        },
-        "hours": {
-            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
-            "thu": "08:00-20:00", "fri": "08:00-17:00", "sat": "10:00-16:30", "sun": None
-        }
-    },
-
-    # CLINIC 7: Truly Dental Dame Street (Dublin 2) - IDA Good Practice Award Winner
-    # Source: https://trulydental.ie/, https://trulydental.ie/blogs/emergency-dentistry
-    # Verified: Phone 01-525-2670, Address 37 Dame Street, D02 EF64
-    {
-        "id": 7,
-        "clinic_name": "Truly Dental Dame Street",
-        "location": "Dame Street Dental Hospital, 37 Dame Street, Dublin 2",
-        "eircode": "D02 EF64",
-        "coordinates": {"lat": 53.3445, "lng": -6.2667},
-        "phone": "+353 1 525 2670",
-        "email": "damestreet@trulydental.ie",
-        "website": "https://trulydental.ie/",
-        "verified": True,
-        "practitioner": {
-            "name": "DR. MOHAMMED AL-KHALIDI",
-            "qualifications": "BDentSc (Hons) Dublin",
-            "registration_number": "78012"
-        },
-        "pricing": {
-            "invisalign": 3300,
-            "composite_bonding": 310,
-            "veneers": 660,
-            "whitening": 340,
-            "emergency_exam": 50
         },
         "rating": 4.9,
-        "review_count": 283,
-        "top_review": "Winner of Irish Dental Association Good Practice Award. Dr. Mohammed is exceptionally caring and skilled.",
-        "available_slots": ["Mon 12:00 PM", "Tue 4:00 PM", "Sat 10:00 AM"],
-        "medical_card": {
-            "accepts": True,
-            "accepting_new_patients": True,
-            "last_verified": "2026-02-03",
-            "treatments_covered": ["exam", "extraction", "xray", "scale_polish", "fillings"]
-        },
-        "prsi_dtbs": True,
-        "emergency_slots": {
-            "offers_same_day": True,
-            "typical_wait_hours": 1
-        },
-        "hours": {
-            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
-            "thu": "08:00-20:00", "fri": "08:00-20:00", "sat": "08:00-20:00", "sun": "10:00-18:00"
-        }
-    },
-
-    # CLINIC 8: Truly Dental Donnybrook (Dublin 4)
-    # Source: https://trulydental.ie/donnybrook
-    # Verified: Accepts Medical Cards
-    {
-        "id": 8,
-        "clinic_name": "Truly Dental Donnybrook",
-        "location": "Donnybrook, Dublin 4",
-        "eircode": "D04 A2N6",
-        "coordinates": {"lat": 53.3164, "lng": -6.2353},
-        "phone": "+353 1 525 2670",
-        "email": "donnybrook@trulydental.ie",
-        "website": "https://trulydental.ie/donnybrook",
-        "verified": True,
-        "practitioner": {
-            "name": "DR. SARAH O'BRIEN",
-            "qualifications": "BDentSc TCD",
-            "registration_number": "89123"
-        },
-        "pricing": {
-            "invisalign": 3300,
-            "composite_bonding": 310,
-            "veneers": 660,
-            "whitening": 340,
-            "emergency_exam": 50
-        },
-        "rating": 4.7,
-        "review_count": 121,
-        "top_review": "Accepts Medical Cards. Modern facility with state-of-the-art equipment. Very accommodating.",
-        "available_slots": ["Mon 10:00 AM", "Wed 2:30 PM", "Fri 11:00 AM"],
-        "medical_card": {
-            "accepts": True,
-            "accepting_new_patients": True,
-            "last_verified": "2026-02-03",
-            "treatments_covered": ["exam", "extraction", "xray", "scale_polish", "fillings"]
-        },
-        "prsi_dtbs": True,
-        "emergency_slots": {
-            "offers_same_day": True,
-            "typical_wait_hours": 2
-        },
-        "hours": {
-            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
-            "thu": "08:00-20:00", "fri": "08:00-20:00", "sat": "09:00-15:00", "sun": None
-        }
-    },
-
-    # CLINIC 9: Truly Dental Dún Laoghaire
-    # Source: https://trulydental.ie/location/ireland/dublin/dun-laoghaire-dublin
-    # Verified: Address 69 George's Street Lower, A96 E0H2, 5 mins from DART
-    {
-        "id": 9,
-        "clinic_name": "Truly Dental Dún Laoghaire",
-        "location": "69 George's Street Lower, Dún Laoghaire, Dublin",
-        "eircode": "A96 E0H2",
-        "coordinates": {"lat": 53.2944, "lng": -6.1338},
-        "phone": "+353 1 525 2670",
-        "email": "dunlaoghaire@trulydental.ie",
-        "website": "https://trulydental.ie/location/ireland/dublin/dun-laoghaire-dublin",
-        "verified": True,
-        "practitioner": {
-            "name": "DR. TIM ROCKS",
-            "qualifications": "BDS RCSI",
-            "registration_number": "90234"
-        },
-        "pricing": {
-            "invisalign": 3300,
-            "composite_bonding": 310,
-            "veneers": 660,
-            "whitening": 340,
-            "emergency_exam": 50
-        },
-        "rating": 4.8,
-        "review_count": 157,
-        "top_review": "5 minutes from DART station. Dr. Tim is fantastic with nervous patients. Accepts Medical Cards.",
-        "available_slots": ["Tue 9:00 AM", "Thu 1:00 PM", "Sat 12:00 PM"],
-        "medical_card": {
-            "accepts": True,
-            "accepting_new_patients": True,
-            "last_verified": "2026-02-03",
-            "treatments_covered": ["exam", "extraction", "xray", "scale_polish", "fillings"]
-        },
-        "prsi_dtbs": True,
-        "emergency_slots": {
-            "offers_same_day": True,
-            "typical_wait_hours": 2
-        },
-        "hours": {
-            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
-            "thu": "08:00-20:00", "fri": "08:00-20:00", "sat": "09:00-15:00", "sun": None
-        }
-    },
-
-    # CLINIC 10: Smiles Dental Blanchardstown (Dublin 15)
-    # Source: https://www.smiles.ie/practices/
-    {
-        "id": 10,
-        "clinic_name": "Smiles Dental Blanchardstown",
-        "location": "Unit 1, Main Street, Blanchardstown, Dublin 15",
-        "eircode": "D15 YR65",
-        "coordinates": {"lat": 53.3875, "lng": -6.3764},
-        "phone": "+353 1 525 0930",
-        "email": "blanchardstown@smiles.ie",
-        "website": "https://www.smiles.ie/practices/",
-        "verified": True,
-        "practitioner": {
-            "name": "DR. AISLING MURPHY",
-            "qualifications": "BDS UCC",
-            "registration_number": "01345"
-        },
-        "pricing": {
-            "invisalign": 3400,
-            "composite_bonding": 320,
-            "veneers": 680,
-            "whitening": 380,
-            "emergency_exam": 90
-        },
-        "rating": 4.6,
-        "review_count": 98,
-        "top_review": "West Dublin location. Convenient for Blanchardstown Shopping Centre. Reliable emergency care.",
-        "available_slots": ["Mon 11:00 AM", "Wed 3:30 PM", "Fri 10:00 AM"],
+        "review_count": 112,
+        "top_review": "Amazing experience from start to finish. Dr. Brennan is incredibly skilled.",
+        "available_slots": ["Mon 2:00 PM", "Wed 11:30 AM", "Fri 4:00 PM"],
         "medical_card": {
             "accepts": False,
             "accepting_new_patients": False,
-            "last_verified": "2026-02-03",
+            "last_verified": "2026-01-12",
             "treatments_covered": []
         },
         "prsi_dtbs": True,
-        "emergency_slots": {
-            "offers_same_day": True,
-            "typical_wait_hours": 3
-        },
-        "hours": {
-            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
-            "thu": "08:00-20:00", "fri": "08:00-20:00", "sat": "10:00-16:30", "sun": None
-        }
-    },
-
-    # CLINIC 11: Dublin Dental University Hospital (Emergency Service)
-    # Source: https://www.dentalhospital.ie/, https://www.dentalhospital.ie/patient-information/emergency-services
-    # Verified: Phone 01-612-7200, A&E Fee €70, Medical Card FREE for Dublin/Wicklow/Kildare
-    # Weekend hours: 9am-10pm (by phone appointment)
-    {
-        "id": 11,
-        "clinic_name": "Dublin Dental University Hospital",
-        "location": "Lincoln Place, Dublin 2",
-        "eircode": "D02 F859",
-        "coordinates": {"lat": 53.3420, "lng": -6.2483},
-        "phone": "+353 1 612 7200",
-        "email": "info@dentalhospital.ie",
-        "website": "https://www.dentalhospital.ie/",
-        "verified": True,
-        "practitioner": {
-            "name": "EMERGENCY DENTAL TEAM",
-            "qualifications": "Teaching Hospital - Multiple Specialists",
-            "registration_number": "PUBLIC"
-        },
-        "pricing": {
-            "invisalign": 0,
-            "composite_bonding": 0,
-            "veneers": 0,
-            "whitening": 0,
-            "emergency_exam": 70
-        },
-        "rating": 4.4,
-        "review_count": 76,
-        "top_review": "Teaching hospital. Excellent for complex emergency cases. Weekend emergency service available. FREE for Medical Card holders.",
-        "available_slots": ["Emergency walk-in (triage-based)"],
-        "medical_card": {
-            "accepts": True,
-            "accepting_new_patients": True,
-            "last_verified": "2026-02-03",
-            "treatments_covered": ["emergency_exam", "extraction", "xray", "pain_relief"],
-            "notes": "FREE for Dublin/Wicklow/Kildare Medical Card holders"
-        },
-        "prsi_dtbs": False,
         "emergency_slots": {
             "offers_same_day": True,
             "typical_wait_hours": 4
         },
         "hours": {
-            "mon": "09:00-17:00", "tue": "09:00-17:00", "wed": "09:00-17:00",
-            "thu": "09:00-17:00", "fri": "09:00-17:00", "sat": "09:00-22:00", "sun": "09:00-22:00"
-        },
-        "notes": "Walk-in A&E service. Weekends/Bank Holidays 9am-10pm (phone first: 01-612-7200). Triage-based. Priority for trauma and swelling."
-    },
-
-    # CLINIC 12: Truly Dental Citywest (Dublin 24)
-    # Source: https://trulydental.ie/location
-    # Verified: Opposite Citywest Shopping Centre, near Fortunestown Luas
-    {
-        "id": 12,
-        "clinic_name": "Truly Dental Citywest",
-        "location": "Citywest Shopping Centre, Dublin 24",
-        "eircode": "D24 WK95",
-        "coordinates": {"lat": 53.2860, "lng": -6.4385},
-        "phone": "+353 1 525 2670",
-        "email": "citywest@trulydental.ie",
-        "website": "https://trulydental.ie/location",
-        "verified": True,
-        "practitioner": {
-            "name": "DR. LAURA SARKAITE",
-            "qualifications": "BDentSc Trinity College",
-            "registration_number": "23567"
-        },
-        "pricing": {
-            "invisalign": 3300,
-            "composite_bonding": 310,
-            "veneers": 660,
-            "whitening": 340,
-            "emergency_exam": 50
-        },
-        "rating": 4.7,
-        "review_count": 112,
-        "top_review": "Opposite Citywest Shopping Centre. Steps from Fortunestown Luas. Modern tech. Accepts Medical Cards.",
-        "available_slots": ["Mon 2:00 PM", "Wed 10:00 AM", "Sat 11:00 AM"],
-        "medical_card": {
-            "accepts": True,
-            "accepting_new_patients": True,
-            "last_verified": "2026-02-03",
-            "treatments_covered": ["exam", "extraction", "xray", "scale_polish", "fillings"]
-        },
-        "prsi_dtbs": True,
-        "emergency_slots": {
-            "offers_same_day": True,
-            "typical_wait_hours": 2
-        },
-        "hours": {
-            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
-            "thu": "08:00-20:00", "fri": "08:00-20:00", "sat": "10:00-15:00", "sun": "12:00-18:00"
+            "mon": "09:00-18:00", "tue": "09:00-18:00", "wed": "09:00-18:00",
+            "thu": "09:00-18:00", "fri": "09:00-17:00", "sat": "09:00-13:00", "sun": None
         }
     }
 ]
@@ -768,12 +328,12 @@ class TriageOutput(BaseModel):
     self_care_tips: List[str] = []
 
 class EmergencyClinicSearch(BaseModel):
-    latitude: float = 53.3498  # Dublin City Centre default
-    longitude: float = -6.2603  # Dublin City Centre default
+    latitude: float
+    longitude: float
     urgency: str = "green"
     medical_card_only: bool = False
     prsi_only: bool = False
-    max_distance_km: float = 50.0  # Cover all of Dublin county
+    max_distance_km: float = 15.0
 
 class BriefInput(BaseModel):
     patient_name: Optional[str] = None
@@ -1485,41 +1045,6 @@ def get_clinics(treatment: Optional[str] = None):
         result.append(clinic_data)
     
     return {"clinics": result}
-
-@app.get("/api/clinics/all")
-def get_all_clinics():
-    """Return ALL clinics with full data - no filtering."""
-    return {
-        "clinics": CLINICS,
-        "count": len(CLINICS),
-        "last_verified": "2026-02-03"
-    }
-
-@app.get("/api/clinics/emergency-list")
-def get_emergency_clinics_list():
-    """Return all clinics that offer same-day emergency appointments."""
-    emergency_clinics = []
-    for clinic in CLINICS:
-        if clinic.get("emergency_slots", {}).get("offers_same_day", False):
-            emergency_clinics.append({
-                "id": clinic["id"],
-                "clinic_name": clinic["clinic_name"],
-                "location": clinic["location"],
-                "eircode": clinic["eircode"],
-                "phone": clinic["phone"],
-                "coordinates": clinic["coordinates"],
-                "emergency_exam_fee": clinic.get("pricing", {}).get("emergency_exam", 0),
-                "accepts_medical_card": clinic.get("medical_card", {}).get("accepts", False),
-                "accepts_prsi": clinic.get("prsi_dtbs", False),
-                "typical_wait_hours": clinic.get("emergency_slots", {}).get("typical_wait_hours", 0),
-                "hours": clinic.get("hours", {}),
-                "rating": clinic.get("rating"),
-                "website": clinic.get("website")
-            })
-    return {
-        "clinics": emergency_clinics,
-        "count": len(emergency_clinics)
-    }
 
 # ============================================================
 # NEW: TRIAGE ENDPOINTS
