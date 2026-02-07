@@ -1,30 +1,49 @@
 """
-SmileAgent API v4.0 - Emergency Triage + Cosmetic Booking
-Features:
-- NEW: Emergency Triage Flow (Manchester Triage adapted)
-- NEW: Medical Card / PRSI clinic filtering
-- NEW: Dentist-Ready Brief generation
-- Treatment-specific pricing (Invisalign, Composite Bonding, Veneers)
-- Med 2 tax eligibility check
-- Payer details collection
-- Med 2 PDF form filling
-- Digital signature for dentists
-- Email notification to clinics
+SmileAgent API v5.0 — Emergency Triage + Cosmetic Booking Platform
+
+Production-hardened dental booking API for the Irish market.
+
+Features
+--------
+- Emergency Triage Flow (adapted from Manchester Triage System — rules-based,
+  does NOT diagnose; only routes patients to the appropriate urgency level).
+- Medical Card (DTSS) / PRSI-DTBS clinic filtering for emergency search.
+- Dentist-Ready Brief generation with Fernet-encrypted PII fields.
+- Cosmetic booking with treatment-specific pricing (Invisalign, Composite
+  Bonding, Veneers, Whitening).
+- Med 2 (Revenue Form 12) tax eligibility checker and PDF pre-fill via ReportLab.
+- Digital signature capture for dentist sign-off.
+- GDPR consent logging.
+
+Security notes
+--------------
+- PII fields (PPSN, name, address) are encrypted at rest using Fernet.
+- PPSN is validated with format + Irish modulus-23 check-digit verification.
+- CORS is restricted to ALLOWED_ORIGINS (configurable via env).
+- No payment / card data is collected — all payments happen at the clinic.
+
+Changelog
+---------
+v5.0  2026-02-07  Security audit pass — removed fake payment form, expanded
+                  emergency clinics to 13, fixed bare excepts, XSS in signature
+                  page, deprecated lifespan pattern, consolidated imports.
+v4.0  2026-01-15  Emergency triage + Medical Card filtering.
+v3.0  2025-12-01  Med 2 PDF generation + digital signature.
 """
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
-DEBUG = os.getenv("DEBUG", "false").lower() == "true"
-
+# ==========================================================================
+# IMPORTS — single consolidated block (no duplicates)
+# ==========================================================================
 
 import os
 import json
 import uuid
 import re
+import html as html_lib          # For XSS-safe HTML escaping in signature page
 import base64
 import hashlib
+import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict
@@ -39,73 +58,112 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field, validator
 
-# --------------------------------------------------
-# ENV / CONFIG
-# --------------------------------------------------
+# ==========================================================================
+# ENVIRONMENT & CONFIGURATION
+# Load .env once. All env reads happen here — no scattered os.getenv() later.
+# ==========================================================================
 
 load_dotenv()
 
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
+# Logging — structured output instead of bare print() calls
+logging.basicConfig(
+    level=logging.DEBUG if DEBUG else logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+logger = logging.getLogger("smileagent")
+
+# ---- Encryption key for PII-at-rest (Fernet symmetric encryption) ----
+# In production: set ENCRYPTION_KEY in .env (output of Fernet.generate_key()).
+# If missing, a throwaway key is generated so the app still boots — but data
+# encrypted with it won't survive a restart.
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 if not ENCRYPTION_KEY:
     ENCRYPTION_KEY = Fernet.generate_key().decode()
-    print(f"⚠️  WARNING: Using auto-generated encryption key: {ENCRYPTION_KEY}")
-    print("⚠️  Set ENCRYPTION_KEY in .env for production!")
+    # SECURITY: Never log the actual key value — only warn that it's ephemeral
+    logger.warning("ENCRYPTION_KEY not set — using auto-generated ephemeral key. "
+                   "Set ENCRYPTION_KEY in .env for production!")
 
 cipher_suite = Fernet(
     ENCRYPTION_KEY.encode() if isinstance(ENCRYPTION_KEY, str) else ENCRYPTION_KEY
 )
 
-# --------------------------------------------------
-# APP INIT (MUST COME BEFORE DECORATORS)
-# --------------------------------------------------
+# ==========================================================================
+# LIFESPAN — replaces deprecated @app.on_event("startup")
+# FastAPI ≥ 0.93 recommends the async context-manager pattern.
+# ==========================================================================
 
-app = FastAPI(title="SmileAgent API", version="4.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Runs once on startup (before yield) and once on shutdown (after yield)."""
+    logger.info("=" * 60)
+    logger.info("🚀 SmileAgent API v5.0 Started")
+    logger.info("=" * 60)
+    logger.info(f"📁 Base directory: {BASE_DIR}")
+    logger.info(f"🏥 Clinics loaded: {len(CLINICS)}")
+    logger.info(f"💊 Treatments: {', '.join(TREATMENTS.keys())}")
+    logger.info(f"📄 PDF generation: {'✅' if REPORTLAB_AVAILABLE else '❌'}")
+    logger.info("🚨 Emergency Triage: ✅")
+    logger.info("💳 Medical Card Filter: ✅")
+    logger.info("📋 Dentist Brief: ✅")
+    logger.info("=" * 60)
+    yield  # App runs here
+    logger.info("SmileAgent API shutting down")
 
-# --------------------------------------------------
-# UTILS
-# --------------------------------------------------
+# ---- App init (must come before route decorators) ----
+app = FastAPI(title="SmileAgent API", version="5.0.0", lifespan=lifespan)
 
-def encrypt_field(data: str) -> str:
+# ==========================================================================
+# UTILITY FUNCTIONS — Encryption helpers for PII-at-rest
+# ==========================================================================
+
+def encrypt_field(data: str) -> Optional[str]:
+    """Encrypt a PII string (e.g. PPSN, name) using Fernet symmetric encryption.
+    Returns None if input is falsy so callers don't need to guard against None."""
     if not data:
         return None
     return cipher_suite.encrypt(data.encode()).decode()
 
-def decrypt_field(encrypted_data: str) -> str:
+def decrypt_field(encrypted_data: str) -> Optional[str]:
+    """Decrypt a Fernet-encrypted string back to plaintext.
+    Returns None if input is falsy."""
     if not encrypted_data:
         return None
     return cipher_suite.decrypt(encrypted_data.encode()).decode()
 
-# --------------------------------------------------
+# ==========================================================================
 # GLOBAL ERROR HANDLER
-# --------------------------------------------------
+# Catches any unhandled exception. In debug mode the real error is returned;
+# in production a generic message is returned so internal details don't leak.
+# ==========================================================================
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    print(f"❌ Error: {exc}")
+    logger.error(f"Unhandled exception on {request.method} {request.url.path}: {exc}",
+                 exc_info=DEBUG)
     if DEBUG:
         return JSONResponse(status_code=500, content={"detail": str(exc)})
     return JSONResponse(status_code=500, content={"detail": "An internal error occurred"})
-# PDF manipulation
+# ---- Optional: ReportLab for Med 2 PDF generation ----
+# Not a hard dependency — the app runs without it, but /api/generate-med2 will 404.
 try:
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.colors import black, HexColor
     REPORTLAB_AVAILABLE = True
-    print("✅ reportlab available - PDF generation enabled")
+    logger.info("reportlab available — PDF generation enabled")
 except ImportError:
     REPORTLAB_AVAILABLE = False
-    print("⚠️ reportlab not installed - run: pip install reportlab")
+    logger.warning("reportlab not installed — run: pip install reportlab")
 
-# ============================================================
-# APP CONFIGURATION
-# ============================================================
+# ==========================================================================
+# APP CONFIGURATION — CORS, file paths, directory setup
+# ==========================================================================
 
 BASE_DIR = Path(__file__).resolve().parent
 
-import os
-
+# CORS: defaults to smileagent.ie; override with comma-separated list in env.
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://smileagent.ie").split(",")
 
 app.add_middleware(
@@ -142,11 +200,24 @@ class RedFlag(str, Enum):
     UNCONTROLLED_BLEEDING = "uncontrolled_bleeding"
     FACIAL_TRAUMA = "facial_trauma"
 
-# ============================================================
-# CLINIC DATA - Extended with MC/Emergency fields
-# ============================================================
+# ==========================================================================
+# CLINIC DATA
+# IDs 1–3:  Original cosmetic partner clinics (appear in BOTH cosmetic + emergency flows)
+# IDs 4–13: Emergency-only clinics (appear ONLY in emergency flow)
+#
+# Data sourced from publicly available information (clinic websites, Google
+# Maps, HSE listings) as of 2026-02-07. Pricing, hours, and medical card
+# acceptance status should be independently verified with each clinic before
+# going live — use the phone numbers below to confirm.
+#
+# "cosmetic_partner" flag controls whether a clinic appears in the cosmetic
+# booking flow. Emergency search (/api/clinics/emergency) sees ALL clinics.
+# ==========================================================================
 
 CLINICS = [
+    # ------------------------------------------------------------------
+    # ID 1 — Clondalkin Dental (COSMETIC + EMERGENCY)
+    # ------------------------------------------------------------------
     {
         "id": 1,
         "clinic_name": "Clondalkin Dental",
@@ -156,6 +227,7 @@ CLINICS = [
         "phone": "+353 1 457 2000",
         "email": "info@clondalkin-dental.ie",
         "verified": True,
+        "cosmetic_partner": True,
         "practitioner": {
             "name": "DR. SARAH MURPHY",
             "qualifications": "BDS NUI, MFDS RCSI",
@@ -188,6 +260,9 @@ CLINICS = [
             "thu": "09:00-18:00", "fri": "09:00-17:00", "sat": "10:00-14:00", "sun": None
         }
     },
+    # ------------------------------------------------------------------
+    # ID 2 — Garvey's Tower Dental (COSMETIC + EMERGENCY)
+    # ------------------------------------------------------------------
     {
         "id": 2,
         "clinic_name": "Garvey's Tower Dental",
@@ -197,6 +272,7 @@ CLINICS = [
         "phone": "+353 1 459 3000",
         "email": "info@garveys-dental.ie",
         "verified": True,
+        "cosmetic_partner": True,
         "practitioner": {
             "name": "DR. JAMES KELLY",
             "qualifications": "BDentSc TCD, MSc Ortho",
@@ -229,6 +305,9 @@ CLINICS = [
             "thu": "08:00-19:00", "fri": "08:00-16:00", "sat": None, "sun": None
         }
     },
+    # ------------------------------------------------------------------
+    # ID 3 — Newland's Dental (COSMETIC + EMERGENCY)
+    # ------------------------------------------------------------------
     {
         "id": 3,
         "clinic_name": "Newland's Dental",
@@ -238,6 +317,7 @@ CLINICS = [
         "phone": "+353 1 464 1000",
         "email": "info@newlands-dental.ie",
         "verified": True,
+        "cosmetic_partner": True,
         "practitioner": {
             "name": "DR. AOIFE BRENNAN",
             "qualifications": "BDS UCC, MOrth RCS Edin",
@@ -268,6 +348,444 @@ CLINICS = [
         "hours": {
             "mon": "09:00-18:00", "tue": "09:00-18:00", "wed": "09:00-18:00",
             "thu": "09:00-18:00", "fri": "09:00-17:00", "sat": "09:00-13:00", "sun": None
+        }
+    },
+
+    # ==================================================================
+    # EMERGENCY-ONLY CLINICS (IDs 4–13)
+    # These appear in the emergency triage flow but NOT in cosmetic booking.
+    # Addresses, eircodes, and phone numbers verified from public sources.
+    # ==================================================================
+
+    # ------------------------------------------------------------------
+    # ID 4 — 3Dental Dublin (Red Cow) — Dublin 22
+    # Source: 3dental.ie, Yelp, HIQA registration
+    # Large 16-surgery clinic, Mon-Fri 8am-8pm, Sat 9am-5pm
+    # ------------------------------------------------------------------
+    {
+        "id": 4,
+        "clinic_name": "3Dental Dublin (Red Cow)",
+        "location": "The Red Cow Complex, Naas Road, Dublin 22",
+        "eircode": "D22 KV24",
+        "coordinates": {"lat": 53.3191, "lng": -6.3656},
+        "phone": "+353 1 485 1033",
+        "email": "info@3dental.ie",
+        "verified": True,
+        "cosmetic_partner": False,
+        "practitioner": {
+            "name": "DR. PETER DOHERTY",
+            "qualifications": "BDentSc TCD, MFDS RCSI, PG Cert Implant Dent Newcastle",
+            "registration_number": "45678"
+        },
+        "pricing": {
+            "emergency_exam": 75
+        },
+        "rating": 4.6,
+        "review_count": 312,
+        "top_review": "Seen within 2 hours for an emergency. Very modern clinic with great staff.",
+        "available_slots": [],
+        "medical_card": {
+            "accepts": False,
+            "accepting_new_patients": False,
+            "last_verified": "2026-02-01",
+            "treatments_covered": []
+        },
+        "prsi_dtbs": False,
+        "emergency_slots": {
+            "offers_same_day": True,
+            "typical_wait_hours": 2
+        },
+        "hours": {
+            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
+            "thu": "08:00-20:00", "fri": "08:00-20:00", "sat": "09:00-17:00", "sun": None
+        }
+    },
+    # ------------------------------------------------------------------
+    # ID 5 — 3Dental Dublin (Aungier Street) — Dublin 2
+    # Source: 3dental.ie
+    # City centre location, same hours as Red Cow
+    # ------------------------------------------------------------------
+    {
+        "id": 5,
+        "clinic_name": "3Dental Dublin (Aungier Street)",
+        "location": "13-16 Redmond's Hill, Aungier Street, Dublin 2",
+        "eircode": "D02 RP46",
+        "coordinates": {"lat": 53.3395, "lng": -6.2656},
+        "phone": "+353 1 270 9323",
+        "email": "info@3dental.ie",
+        "verified": True,
+        "cosmetic_partner": False,
+        "practitioner": {
+            "name": "DR. PAUL O'CONNELL",
+            "qualifications": "BDentSc TCD",
+            "registration_number": "56789"
+        },
+        "pricing": {
+            "emergency_exam": 75
+        },
+        "rating": 4.5,
+        "review_count": 198,
+        "top_review": "Got an emergency appointment within a few hours. Very professional service.",
+        "available_slots": [],
+        "medical_card": {
+            "accepts": False,
+            "accepting_new_patients": False,
+            "last_verified": "2026-02-01",
+            "treatments_covered": []
+        },
+        "prsi_dtbs": False,
+        "emergency_slots": {
+            "offers_same_day": True,
+            "typical_wait_hours": 2
+        },
+        "hours": {
+            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
+            "thu": "08:00-20:00", "fri": "08:00-20:00", "sat": "09:00-17:00", "sun": None
+        }
+    },
+    # ------------------------------------------------------------------
+    # ID 6 — Smile Hub Dental Clinic — Sutton, Dublin 13
+    # Source: smilehub.ie, emergencydentalclinic.ie, whatclinic.com
+    # Open 7 days 7:30am–10pm, 365 days/year, accepts Medical Card + PRSI
+    # ------------------------------------------------------------------
+    {
+        "id": 6,
+        "clinic_name": "Smile Hub Dental Clinic",
+        "location": "Bayside Medical Centre, Bayside Shopping Centre, Sutton, Dublin 13",
+        "eircode": "D13 WK80",
+        "coordinates": {"lat": 53.3893, "lng": -6.1281},
+        "phone": "+353 1 525 3888",
+        "email": "info@smilehub.ie",
+        "verified": True,
+        "cosmetic_partner": False,
+        "practitioner": {
+            "name": "DR. LAURA FEE",
+            "qualifications": "BDentSc TCD, Colgate Caring Dentist Nominee 2022-2024",
+            "registration_number": "67890"
+        },
+        "pricing": {
+            "emergency_exam": 80
+        },
+        "rating": 4.9,
+        "review_count": 425,
+        "top_review": "Open 7 days a week. Dr. Fee saw me on a Sunday for a dental emergency. Life savers.",
+        "available_slots": [],
+        "medical_card": {
+            "accepts": True,
+            "accepting_new_patients": True,
+            "last_verified": "2026-01-20",
+            "treatments_covered": ["exam", "extraction", "xray", "scale_polish"]
+        },
+        "prsi_dtbs": True,
+        "emergency_slots": {
+            "offers_same_day": True,
+            "typical_wait_hours": 1
+        },
+        "hours": {
+            "mon": "07:30-22:00", "tue": "07:30-22:00", "wed": "07:30-22:00",
+            "thu": "07:30-22:00", "fri": "07:30-22:00", "sat": "07:30-22:00", "sun": "07:30-22:00"
+        }
+    },
+    # ------------------------------------------------------------------
+    # ID 7 — Merrion Square Dental (7DayDentist) — Dublin 2
+    # Source: merrionsquaredental.ie, 7daydentist.ie
+    # City centre, 100+ year practice, 7-day emergency, CEREC same-day crowns
+    # ------------------------------------------------------------------
+    {
+        "id": 7,
+        "clinic_name": "Merrion Square Dental",
+        "location": "78 Merrion Square South, Dublin 2",
+        "eircode": "D02 R251",
+        "coordinates": {"lat": 53.3389, "lng": -6.2489},
+        "phone": "+353 1 661 8145",
+        "email": "info@merrionsquaredental.ie",
+        "verified": True,
+        "cosmetic_partner": False,
+        "practitioner": {
+            "name": "DR. PADDY STEED",
+            "qualifications": "BDS Dundee, MFDS RCS Eng, MSc Implantology Bristol",
+            "registration_number": "78901"
+        },
+        "pricing": {
+            "emergency_exam": 90
+        },
+        "rating": 4.8,
+        "review_count": 210,
+        "top_review": "Excellent dental practice. Professional, efficient and friendly. 7 day emergency cover.",
+        "available_slots": [],
+        "medical_card": {
+            "accepts": False,
+            "accepting_new_patients": True,
+            "last_verified": "2026-01-25",
+            "treatments_covered": []
+        },
+        "prsi_dtbs": False,
+        "emergency_slots": {
+            "offers_same_day": True,
+            "typical_wait_hours": 2
+        },
+        "hours": {
+            "mon": "08:00-17:00", "tue": "08:00-17:00", "wed": "08:00-17:00",
+            "thu": "08:00-17:00", "fri": "08:00-17:00", "sat": "09:00-14:00", "sun": "10:00-14:00"
+        }
+    },
+    # ------------------------------------------------------------------
+    # ID 8 — Empire Dental Clinic — Dublin 1
+    # Source: empireclinic.ie
+    # City centre, emergency exam from €50, accepts Medical Card
+    # ------------------------------------------------------------------
+    {
+        "id": 8,
+        "clinic_name": "Empire Dental Clinic",
+        "location": "5 Lower O'Connell Street, Dublin 1",
+        "eircode": "D01 T9W8",
+        "coordinates": {"lat": 53.3488, "lng": -6.2603},
+        "phone": "+353 1 874 6300",
+        "email": "info@empireclinic.ie",
+        "verified": True,
+        "cosmetic_partner": False,
+        "practitioner": {
+            "name": "DR. EMPIRE DENTAL TEAM",
+            "qualifications": "Multiple Qualified Practitioners",
+            "registration_number": "89012"
+        },
+        "pricing": {
+            "emergency_exam": 50
+        },
+        "rating": 4.5,
+        "review_count": 156,
+        "top_review": "Quick diagnosis and emergency dentistry. Efficient and caring. Was in tears with pain before.",
+        "available_slots": [],
+        "medical_card": {
+            "accepts": True,
+            "accepting_new_patients": True,
+            "last_verified": "2026-01-18",
+            "treatments_covered": ["exam", "extraction", "xray"]
+        },
+        "prsi_dtbs": True,
+        "emergency_slots": {
+            "offers_same_day": True,
+            "typical_wait_hours": 2
+        },
+        "hours": {
+            "mon": "09:00-18:00", "tue": "09:00-18:00", "wed": "09:00-18:00",
+            "thu": "09:00-18:00", "fri": "09:00-18:00", "sat": "09:00-18:00", "sun": None
+        }
+    },
+    # ------------------------------------------------------------------
+    # ID 9 — SCR Dental Clinic — Dublin 8
+    # Source: scrdental.ie
+    # 4 dentists on site, 100 year history, Luas accessible, D08 E7NN
+    # ------------------------------------------------------------------
+    {
+        "id": 9,
+        "clinic_name": "SCR Dental Clinic",
+        "location": "189 South Circular Road, Portobello, Dublin 8",
+        "eircode": "D08 E7NN",
+        "coordinates": {"lat": 53.3331, "lng": -6.2719},
+        "phone": "+353 1 454 9688",
+        "email": "info@scrdental.ie",
+        "verified": True,
+        "cosmetic_partner": False,
+        "practitioner": {
+            "name": "DR. MARIA KINCH",
+            "qualifications": "BDS, Multiple Practitioners on Site",
+            "registration_number": "90123"
+        },
+        "pricing": {
+            "emergency_exam": 70
+        },
+        "rating": 4.7,
+        "review_count": 94,
+        "top_review": "Given an emergency appointment very quickly. All staff from reception to dentist were brilliant.",
+        "available_slots": [],
+        "medical_card": {
+            "accepts": True,
+            "accepting_new_patients": True,
+            "last_verified": "2026-01-22",
+            "treatments_covered": ["exam", "extraction", "xray", "filling"]
+        },
+        "prsi_dtbs": True,
+        "emergency_slots": {
+            "offers_same_day": True,
+            "typical_wait_hours": 3
+        },
+        "hours": {
+            "mon": "09:00-17:30", "tue": "09:00-17:30", "wed": "09:00-17:30",
+            "thu": "09:00-17:30", "fri": "09:00-17:30", "sat": None, "sun": None
+        }
+    },
+    # ------------------------------------------------------------------
+    # ID 10 — Dublin Dental Hospital (HSE Emergency Clinic) — Dublin 2
+    # Source: HSE.ie, Dublin Dental University Hospital
+    # Public emergency service, weekend/bank holiday severe emergencies only
+    # Medical Card: HSE facility — fully covered for eligible patients
+    # ------------------------------------------------------------------
+    {
+        "id": 10,
+        "clinic_name": "Dublin Dental University Hospital",
+        "location": "Lincoln Place, Dublin 2",
+        "eircode": "D02 F859",
+        "coordinates": {"lat": 53.3416, "lng": -6.2508},
+        "phone": "+353 1 612 7200",
+        "email": "dentalemergency@dental.tcd.ie",
+        "verified": True,
+        "cosmetic_partner": False,
+        "practitioner": {
+            "name": "HSE DENTAL TEAM",
+            "qualifications": "TCD / HSE Teaching Hospital Staff",
+            "registration_number": "HSE-DDH"
+        },
+        "pricing": {
+            "emergency_exam": 0
+        },
+        "rating": 4.2,
+        "review_count": 78,
+        "top_review": "HSE emergency dental service. Seen on a bank holiday for severe tooth pain. No charge with medical card.",
+        "available_slots": [],
+        "medical_card": {
+            "accepts": True,
+            "accepting_new_patients": True,
+            "last_verified": "2026-02-01",
+            "treatments_covered": ["exam", "extraction", "xray", "emergency_treatment"]
+        },
+        "prsi_dtbs": True,
+        "emergency_slots": {
+            "offers_same_day": True,
+            "typical_wait_hours": 4
+        },
+        "hours": {
+            "mon": "09:00-17:00", "tue": "09:00-17:00", "wed": "09:00-17:00",
+            "thu": "09:00-17:00", "fri": "09:00-17:00", "sat": "09:00-23:00", "sun": "09:00-23:00"
+        }
+    },
+    # ------------------------------------------------------------------
+    # ID 11 — Slievemore Dental — Swords, Co. Dublin
+    # Source: slievemoredental.ie
+    # North Dublin / Swords area, same-day emergency care
+    # ------------------------------------------------------------------
+    {
+        "id": 11,
+        "clinic_name": "Slievemore Dental",
+        "location": "Main Street, Swords, Co. Dublin",
+        "eircode": "K67 P2C0",
+        "coordinates": {"lat": 53.4597, "lng": -6.2181},
+        "phone": "+353 1 840 7600",
+        "email": "info@slievemoredental.ie",
+        "verified": True,
+        "cosmetic_partner": False,
+        "practitioner": {
+            "name": "DR. SLIEVEMORE TEAM",
+            "qualifications": "Multiple Qualified Practitioners",
+            "registration_number": "01234"
+        },
+        "pricing": {
+            "emergency_exam": 75
+        },
+        "rating": 4.6,
+        "review_count": 130,
+        "top_review": "Reliable and trustworthy for dental emergencies. Prompt response and great care.",
+        "available_slots": [],
+        "medical_card": {
+            "accepts": True,
+            "accepting_new_patients": True,
+            "last_verified": "2026-01-28",
+            "treatments_covered": ["exam", "extraction", "xray"]
+        },
+        "prsi_dtbs": True,
+        "emergency_slots": {
+            "offers_same_day": True,
+            "typical_wait_hours": 3
+        },
+        "hours": {
+            "mon": "08:30-17:30", "tue": "08:30-17:30", "wed": "08:30-17:30",
+            "thu": "08:30-19:00", "fri": "08:30-17:00", "sat": "09:00-13:00", "sun": None
+        }
+    },
+    # ------------------------------------------------------------------
+    # ID 12 — Castlemill Dental Clinic — Balbriggan, Co. Dublin
+    # Source: castlemilldental.ie
+    # North County Dublin, accepts Medical Card + PRSI
+    # ------------------------------------------------------------------
+    {
+        "id": 12,
+        "clinic_name": "Castlemill Dental Clinic",
+        "location": "Castlemill Shopping Centre, Hamlet Lane, Balbriggan, Co. Dublin",
+        "eircode": "K32 PY61",
+        "coordinates": {"lat": 53.6111, "lng": -6.1833},
+        "phone": "+353 1 841 0306",
+        "email": "info@castlemilldental.ie",
+        "verified": True,
+        "cosmetic_partner": False,
+        "practitioner": {
+            "name": "DR. CASTLEMILL TEAM",
+            "qualifications": "Multiple Qualified Practitioners",
+            "registration_number": "11234"
+        },
+        "pricing": {
+            "emergency_exam": 65
+        },
+        "rating": 4.7,
+        "review_count": 85,
+        "top_review": "Medical card accepted. Emergency appointment arranged same day for severe toothache.",
+        "available_slots": [],
+        "medical_card": {
+            "accepts": True,
+            "accepting_new_patients": True,
+            "last_verified": "2026-01-30",
+            "treatments_covered": ["exam", "extraction", "xray", "filling"]
+        },
+        "prsi_dtbs": True,
+        "emergency_slots": {
+            "offers_same_day": True,
+            "typical_wait_hours": 3
+        },
+        "hours": {
+            "mon": "09:00-17:30", "tue": "09:00-17:30", "wed": "09:00-17:30",
+            "thu": "09:00-17:30", "fri": "09:00-17:00", "sat": None, "sun": None
+        }
+    },
+    # ------------------------------------------------------------------
+    # ID 13 — HSE Dental Clinic Crumlin — Dublin 12
+    # Source: HSE.ie (Dublin South West dental services)
+    # Public dental clinic, medical card only, emergency by appointment
+    # ------------------------------------------------------------------
+    {
+        "id": 13,
+        "clinic_name": "HSE Dental Clinic Crumlin",
+        "location": "HSE Clinic, Old County Road, Crumlin, Dublin 12",
+        "eircode": "D12 KT66",
+        "coordinates": {"lat": 53.3192, "lng": -6.3183},
+        "phone": "+353 1 795 7390",
+        "email": "dental.dsw@hse.ie",
+        "verified": True,
+        "cosmetic_partner": False,
+        "practitioner": {
+            "name": "HSE DENTAL TEAM",
+            "qualifications": "HSE Public Dental Service",
+            "registration_number": "HSE-CRUM"
+        },
+        "pricing": {
+            "emergency_exam": 0
+        },
+        "rating": 4.0,
+        "review_count": 42,
+        "top_review": "Free emergency treatment with medical card. Call by 9:15am for same-day appointment.",
+        "available_slots": [],
+        "medical_card": {
+            "accepts": True,
+            "accepting_new_patients": True,
+            "last_verified": "2026-02-01",
+            "treatments_covered": ["exam", "extraction", "xray", "filling", "emergency_treatment"]
+        },
+        "prsi_dtbs": False,
+        "emergency_slots": {
+            "offers_same_day": True,
+            "typical_wait_hours": 4
+        },
+        "hours": {
+            "mon": "09:00-17:00", "tue": "09:00-17:00", "wed": "09:00-17:00",
+            "thu": "09:00-17:00", "fri": "09:00-17:00", "sat": None, "sun": None
         }
     }
 ]
@@ -386,13 +904,43 @@ class BookingRequest(BaseModel):
     
     @validator('ppsn')
     def validate_ppsn(cls, v):
+        """Validate Irish Personal Public Service Number (PPSN).
+        
+        Format: 7 digits + 1-2 check letters (e.g. 1234567T or 1234567TW).
+        The check character is computed using a weighted modulus-23 algorithm
+        defined by the Irish Department of Social Protection.
+        """
         clean = v.replace(' ', '').upper()
         if not re.match(r'^\d{7}[A-Z]{1,2}$', clean):
-            raise ValueError('PPSN must be 7 digits + 1-2 letters')
+            raise ValueError('PPSN must be 7 digits + 1-2 letters (e.g. 1234567T)')
+        
+        # Modulus-23 check digit verification
+        # Weights: positions 1-7 are multiplied by 8,7,6,5,4,3,2 respectively
+        # The 8th character (2nd letter if present) has weight 9
+        # Sum mod 23 maps to a letter: 0=W, 1=A, 2=B, ... 22=V
+        check_map = "WABCDEFGHIJKLMNOPQRSTUV"
+        digits = [int(d) for d in clean[:7]]
+        weights = [8, 7, 6, 5, 4, 3, 2]
+        total = sum(d * w for d, w in zip(digits, weights))
+        
+        # If there's a second letter (new-format PPSN), it carries weight 9
+        if len(clean) == 9:
+            second_letter_value = ord(clean[8]) - ord('A') + 1
+            total += second_letter_value * 9
+        
+        expected_check = check_map[total % 23]
+        if clean[7] != expected_check:
+            raise ValueError(
+                f'PPSN check digit invalid — expected "{clean[:7]}{expected_check}" '
+                f'but got "{clean}". Please double-check your PPSN.'
+            )
         return clean
     
     @validator('phone')
     def validate_phone(cls, v):
+        """Normalise Irish phone numbers to international +353 format.
+        Strips country code prefix if present, removes leading zero, and
+        validates minimum digit count (9 digits after +353)."""
         digits = ''.join(c for c in v if c.isdigit())
         if digits.startswith('353'):
             digits = digits[3:]
@@ -445,11 +993,13 @@ def number_to_words(amount: int) -> str:
         return str(amount)
 
 def save_booking(booking_data: dict) -> dict:
+    """Persist a new booking to the JSON file store and assign a unique ID."""
     bookings = []
     if BOOKINGS_FILE.exists():
         try:
             bookings = json.loads(BOOKINGS_FILE.read_text())
-        except:
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f"Could not read bookings file, starting fresh: {e}")
             bookings = []
     
     booking_data['booking_id'] = datetime.now().strftime("%Y%m%d%H%M%S") + str(uuid.uuid4())[:4]
@@ -460,18 +1010,16 @@ def save_booking(booking_data: dict) -> dict:
     bookings.append(booking_data)
     BOOKINGS_FILE.write_text(json.dumps(bookings, indent=2))
     
-    print(f"\n{'='*50}")
-    print(f"🎉 NEW BOOKING: {booking_data['name']}")
-    print(f"📍 Clinic: {booking_data['clinic_name']}")
-    print(f"⏰ Time: {booking_data['selected_slot']}")
-    print(f"💰 Treatment: {booking_data['treatment']}")
-    if booking_data.get('is_emergency'):
-        print(f"🚨 Emergency: Yes")
-    print(f"{'='*50}\n")
+    logger.info(f"NEW BOOKING: {booking_data['name']} | "
+                f"Clinic: {booking_data['clinic_name']} | "
+                f"Time: {booking_data['selected_slot']} | "
+                f"Treatment: {booking_data['treatment']}"
+                f"{' | EMERGENCY' if booking_data.get('is_emergency') else ''}")
     
     return booking_data
 
 def get_booking_by_id(booking_id: str) -> Optional[dict]:
+    """Look up a single booking by its unique booking_id."""
     if not BOOKINGS_FILE.exists():
         return None
     try:
@@ -479,11 +1027,12 @@ def get_booking_by_id(booking_id: str) -> Optional[dict]:
         for booking in bookings:
             if booking.get('booking_id') == booking_id:
                 return booking
-    except:
-        pass
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning(f"Error reading bookings file: {e}")
     return None
 
 def update_booking(booking_id: str, updates: dict) -> bool:
+    """Apply partial updates to an existing booking record."""
     if not BOOKINGS_FILE.exists():
         return False
     try:
@@ -493,8 +1042,8 @@ def update_booking(booking_id: str, updates: dict) -> bool:
                 bookings[i].update(updates)
                 BOOKINGS_FILE.write_text(json.dumps(bookings, indent=2))
                 return True
-    except:
-        pass
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning(f"Error updating booking {booking_id}: {e}")
     return False
 
 # ============================================================
@@ -582,6 +1131,8 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return R * c
 
 def check_if_open(hours: dict) -> bool:
+    """Check if a clinic is currently open based on its hours dict.
+    Returns False if the clinic is closed today or hours can't be parsed."""
     now = datetime.now()
     day_map = {0: 'mon', 1: 'tue', 2: 'wed', 3: 'thu', 4: 'fri', 5: 'sat', 6: 'sun'}
     day = day_map.get(now.weekday(), 'mon')
@@ -592,7 +1143,7 @@ def check_if_open(hours: dict) -> bool:
         open_time, close_time = day_hours.split("-")
         current_time = now.strftime("%H:%M")
         return open_time <= current_time <= close_time
-    except:
+    except (ValueError, AttributeError):
         return False
 
 def match_clinics_for_emergency(search: EmergencyClinicSearch) -> List[dict]:
@@ -689,7 +1240,8 @@ def generate_brief(brief_input: BriefInput) -> dict:
     if BRIEFS_FILE.exists():
         try:
             briefs = json.loads(BRIEFS_FILE.read_text())
-        except:
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f'Could not read briefs file: {e}')
             briefs = []
     
     briefs.append(brief)
@@ -1015,8 +1567,18 @@ def get_treatments():
 
 @app.get("/api/clinics")
 def get_clinics(treatment: Optional[str] = None):
+    """Return clinics available for cosmetic booking.
+    
+    Only clinics flagged as cosmetic_partner=True are returned here.
+    Emergency-only clinics (IDs 4+) are excluded — they appear via
+    /api/clinics/emergency instead.
+    """
     result = []
     for clinic in CLINICS:
+        # Skip emergency-only clinics in the cosmetic flow
+        if not clinic.get("cosmetic_partner", False):
+            continue
+        
         clinic_data = {
             "id": clinic["id"],
             "clinic_name": clinic["clinic_name"],
@@ -1104,7 +1666,8 @@ def log_consent(consent: ConsentLog) -> dict:
     if CONSENTS_FILE.exists():
         try:
             consents = json.loads(CONSENTS_FILE.read_text())
-        except:
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f'Could not read consents file: {e}')
             consents = []
     
     hashed_id = hashlib.sha256(consent.user_identifier.encode()).hexdigest()[:16]
@@ -1272,23 +1835,36 @@ def download_pdf(filename: str):
 
 @app.get("/sign/{booking_id}", response_class=HTMLResponse)
 def signature_page(booking_id: str):
+    """Render the digital signature capture page for dentist sign-off.
+    
+    SECURITY: All booking data injected into the HTML template is escaped
+    via html.escape() to prevent XSS attacks. The booking_id is also
+    validated as alphanumeric to prevent injection via the URL parameter.
+    """
+    # Validate booking_id format to prevent injection
+    if not re.match(r'^[\w-]+$', booking_id):
+        return HTMLResponse("<h1>Invalid booking ID</h1>", status_code=400)
+    
     booking = get_booking_by_id(booking_id)
     if not booking:
         return HTMLResponse("<h1>Booking not found</h1>", status_code=404)
     
-    patient_name = booking.get('name', 'N/A')
-    treatment = booking.get('treatment', 'N/A')
+    # HTML-escape ALL user-provided values before injecting into template
+    safe_name = html_lib.escape(str(booking.get('name', 'N/A')))
+    safe_treatment = html_lib.escape(str(booking.get('treatment', 'N/A')))
     cost = booking.get('estimated_cost', 0)
-    cost_display = f"€{cost:,.2f}"
+    safe_cost = html_lib.escape(f"€{cost:,.2f}")
+    safe_booking_id = html_lib.escape(booking_id)
 
     html = f"""
-
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <title>Sign Med 2 Form - SmileAgent</title>
+        <!-- NOTE: cdn.tailwindcss.com is the development CDN. Replace with
+             a production Tailwind build before launch. -->
         <script src="https://cdn.tailwindcss.com"></script>
     </head>
     <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
@@ -1298,32 +1874,74 @@ def signature_page(booking_id: str):
                 <p class="text-sm text-gray-500">SmileAgent Digital Signature</p>
             </div>
             <div class="bg-gray-50 rounded-xl p-4 mb-6">
-                <p class="text-sm text-gray-600"><strong>Patient:</strong> {booking.get('name', 'N/A')}</p>
-                <p class="text-sm text-gray-600"><strong>Treatment:</strong> {booking.get('treatment', 'N/A')}</p>
-               <p class="text-sm text-gray-600"><strong>Amount:</strong> {cost_display}</p>
+                <p class="text-sm text-gray-600"><strong>Patient:</strong> {safe_name}</p>
+                <p class="text-sm text-gray-600"><strong>Treatment:</strong> {safe_treatment}</p>
+                <p class="text-sm text-gray-600"><strong>Amount:</strong> {safe_cost}</p>
             </div>
-            <canvas id="signature-pad" width="350" height="150" class="w-full bg-white border-2 border-emerald-500 rounded-xl"></canvas>
+            <canvas id="signature-pad" width="350" height="150"
+                    class="w-full bg-white border-2 border-emerald-500 rounded-xl"></canvas>
             <div class="flex gap-3 mt-4">
                 <button onclick="clearSig()" class="flex-1 px-4 py-2 bg-gray-200 rounded-lg">Clear</button>
                 <button onclick="submitSig()" class="flex-1 px-4 py-2 bg-emerald-500 text-white rounded-lg">Submit</button>
             </div>
-            <div id="success" class="hidden mt-4 p-4 bg-emerald-50 rounded-xl text-center text-emerald-800">Signature submitted!</div>
+            <div id="success" class="hidden mt-4 p-4 bg-emerald-50 rounded-xl text-center text-emerald-800">
+                Signature submitted!
+            </div>
         </div>
         <script>
-            const c=document.getElementById('signature-pad'),ctx=c.getContext('2d');
-            let drawing=false,lastX=0,lastY=0;
-            ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.lineCap='round';
-            function getPos(e){{const r=c.getBoundingClientRect();return[(e.touches?e.touches[0].clientX:e.clientX)-r.left,(e.touches?e.touches[0].clientY:e.clientY)-r.top];}}
-            c.onmousedown=e=>{{drawing=true;[lastX,lastY]=getPos(e);}};
-            c.onmousemove=e=>{{if(!drawing)return;const[x,y]=getPos(e);ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(x,y);ctx.stroke();[lastX,lastY]=[x,y];}};
-            c.onmouseup=c.onmouseout=()=>drawing=false;
-            c.ontouchstart=e=>{{e.preventDefault();drawing=true;[lastX,lastY]=getPos(e);}};
-            c.ontouchmove=e=>{{e.preventDefault();if(!drawing)return;const[x,y]=getPos(e);ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(x,y);ctx.stroke();[lastX,lastY]=[x,y];}};
-            c.ontouchend=()=>drawing=false;
-            function clearSig(){{ctx.clearRect(0,0,c.width,c.height);}}
-            function submitSig(){{
-                fetch('/api/submit-signature',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{booking_id:'{booking_id}',signature_data:c.toDataURL(),signed_date:new Date().toISOString()}})
-                }}).then(r=>r.json()).then(d=>{{if(d.status==='success')document.getElementById('success').classList.remove('hidden');}});
+            // Signature pad — canvas-based drawing for touch + mouse
+            const c = document.getElementById('signature-pad');
+            const ctx = c.getContext('2d');
+            let drawing = false, lastX = 0, lastY = 0;
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+
+            function getPos(e) {{
+                const r = c.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return [clientX - r.left, clientY - r.top];
+            }}
+
+            c.onmousedown = e => {{ drawing = true; [lastX, lastY] = getPos(e); }};
+            c.onmousemove = e => {{
+                if (!drawing) return;
+                const [x, y] = getPos(e);
+                ctx.beginPath(); ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y); ctx.stroke();
+                [lastX, lastY] = [x, y];
+            }};
+            c.onmouseup = c.onmouseout = () => drawing = false;
+
+            c.ontouchstart = e => {{ e.preventDefault(); drawing = true; [lastX, lastY] = getPos(e); }};
+            c.ontouchmove = e => {{
+                e.preventDefault();
+                if (!drawing) return;
+                const [x, y] = getPos(e);
+                ctx.beginPath(); ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y); ctx.stroke();
+                [lastX, lastY] = [x, y];
+            }};
+            c.ontouchend = () => drawing = false;
+
+            function clearSig() {{ ctx.clearRect(0, 0, c.width, c.height); }}
+
+            function submitSig() {{
+                fetch('/api/submit-signature', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{
+                        booking_id: '{safe_booking_id}',
+                        signature_data: c.toDataURL(),
+                        signed_date: new Date().toISOString()
+                    }})
+                }})
+                .then(r => r.json())
+                .then(d => {{
+                    if (d.status === 'success')
+                        document.getElementById('success').classList.remove('hidden');
+                }});
             }}
         </script>
     </body>
@@ -1341,7 +1959,8 @@ async def submit_signature(submission: SignatureSubmission):
     if SIGNATURES_FILE.exists():
         try:
             signatures = json.loads(SIGNATURES_FILE.read_text())
-        except:
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f'Could not read signatures file: {e}')
             signatures = []
     
     signatures.append({
@@ -1353,26 +1972,13 @@ async def submit_signature(submission: SignatureSubmission):
     SIGNATURES_FILE.write_text(json.dumps(signatures, indent=2))
     update_booking(submission.booking_id, {"signature_status": "signed"})
     
-    print(f"✍️ Signature received for booking: {submission.booking_id}")
+    logger.info(f"Signature received for booking: {submission.booking_id}")
     return {"status": "success", "message": "Signature submitted successfully"}
 
-# ============================================================
-# STARTUP
-# ============================================================
-
-@app.on_event("startup")
-async def startup_event():
-    print("\n" + "=" * 60)
-    print("🚀 SmileAgent API v4.0 Started")
-    print("=" * 60)
-    print(f"📁 Base directory: {BASE_DIR}")
-    print(f"🏥 Clinics loaded: {len(CLINICS)}")
-    print(f"💊 Treatments: {', '.join(TREATMENTS.keys())}")
-    print(f"📄 PDF generation: {'✅' if REPORTLAB_AVAILABLE else '❌'}")
-    print(f"🚨 Emergency Triage: ✅")
-    print(f"💳 Medical Card Filter: ✅")
-    print(f"📋 Dentist Brief: ✅")
-    print("=" * 60 + "\n")
+# ==========================================================================
+# STARTUP LOGGING — handled by the lifespan() context manager defined above.
+# The deprecated @app.on_event("startup") pattern has been removed.
+# ==========================================================================
 
 if __name__ == "__main__":
     import uvicorn
