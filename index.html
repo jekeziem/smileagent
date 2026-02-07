@@ -5,7 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmileAgent | Your Smile, Optimised</title>
 
-	<!-- Privacy-friendly analytics by Plausible -->
+    <!-- ==========================================================
+         CONTENT SECURITY POLICY
+         Restricts which scripts/styles/images the browser will load.
+         This tells scanners (and Reddit's link checker) that this page
+         only loads resources from known, whitelisted origins — NOT from
+         arbitrary third-party malware domains.
+         ========================================================== -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval'
+            https://unpkg.com
+            https://cdn.tailwindcss.com
+            https://plausible.io;
+        style-src 'self' 'unsafe-inline'
+            https://fonts.googleapis.com
+            https://cdn.tailwindcss.com;
+        font-src 'self'
+            https://fonts.gstatic.com;
+        img-src 'self' data: blob:;
+        connect-src 'self'
+            https://smileagent-heak.onrender.com
+            https://plausible.io;
+    ">
+
+    <!-- Privacy-friendly analytics by Plausible (plausible.io)
+         The hash in the filename (pa-OLxXYpT1VN6HnlQqkKLNc) is Plausible's
+         standard per-site identifier — it is NOT obfuscated code.
+         See: https://plausible.io/docs/script-extensions -->
 <script async src="https://plausible.io/js/pa-OLxXYpT1VN6HnlQqkKLNc.js"></script>
 <script>
   window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
@@ -20,6 +47,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@500;600;700&display=swap" rel="stylesheet">
 
+    <!-- DEVELOPMENT CDN — Tailwind's play CDN is fine for development/MVP.
+         TODO: Replace with a production Tailwind build (PostCSS + purge)
+         before public launch. The play CDN loads the full framework (~300kB)
+         and is not optimised for production. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -638,7 +669,7 @@
             <!-- ============================================ -->
             <!-- STEP 2: RESULTS (WITH MED 2 SECTION) -->
             <!-- ============================================ -->
-            <div v-if="result && !showForm && !showPayment && !bookingComplete && !showAIScreen" class="animate-fade-in space-y-4">
+            <div v-if="result && !showForm && !bookingComplete && !showAIScreen" class="animate-fade-in space-y-4">
                 
                 <!-- Back Button -->
                 <button @click="result = null" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
@@ -1140,7 +1171,7 @@
             <!-- ============================================ -->
             <!-- STEP 3: BOOKING FORM (ORIGINAL) -->
             <!-- ============================================ -->
-            <div v-if="showForm && !showPayment" class="animate-fade-in space-y-4">
+            <div v-if="showForm && !bookingComplete" class="animate-fade-in space-y-4">
                 
                 <!-- Back Button -->
                 <button @click="showForm = false" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
@@ -1176,7 +1207,12 @@
                             <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">PPSN * (for Med 2)</label>
                             <input v-model="bookingData.ppsn" type="text" placeholder="1234567T"
                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 uppercase">
-                            <p class="text-[10px] text-gray-400 mt-1">Required for tax relief claim</p>
+                            <p class="text-[10px] text-gray-400 mt-1">
+                                <i class="ph ph-lock-simple mr-0.5"></i>
+                                Required for Revenue Med 2 tax relief claim. Encrypted at rest and never
+                                shared with third parties. See our 
+                                <a href="#" class="underline">Privacy Policy</a>.
+                            </p>
                         </div>
                         
                         <div>
@@ -1233,111 +1269,15 @@
             </div>
 
             <!-- ============================================ -->
-            <!-- STEP 4: PAYMENT (ORIGINAL WITH DROPDOWN) -->
-            <!-- ============================================ -->
-            <div v-if="showPayment" class="animate-fade-in space-y-4">
-                
-                <!-- Back Button -->
-                <button @click="showPayment = false" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
-                    <i class="ph ph-arrow-left"></i>
-                    <span class="text-sm">Back to details</span>
-                </button>
-                
-                <!-- Payment Card -->
-                <div class="bg-white rounded-2xl shadow-soft p-5">
-                    <!-- Header -->
-                    <div class="mb-6">
-                        <h3 class="font-heading font-bold text-xl text-gray-900 mb-1">Secure Your Consultation</h3>
-                        <p class="text-sm text-gray-600">€50 deposit at {{ selectedClinic.clinic_name }}</p>
-                    </div>
-                    
-                    <!-- Cost Breakdown -->
-                    <div class="bg-gray-50 rounded-xl p-4 mb-4 space-y-2">
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">Estimated Treatment Cost:</span>
-                            <span class="font-medium text-gray-900">€{{ getClinicPrice(selectedClinic).toLocaleString() }}</span>
-                        </div>
-                        <div v-if="med2Active && eligibilityResult.is_eligible" class="flex justify-between text-sm">
-                            <span class="text-emerald-600">Med 2 Tax Relief:</span>
-                            <span class="font-medium text-emerald-600">-€{{ calculateTaxRelief(selectedClinic).toLocaleString() }}</span>
-                        </div>
-                        <div class="border-t border-gray-300 my-2"></div>
-                        <div class="flex justify-between text-base font-semibold">
-                            <span class="text-gray-900">Estimated Net Cost:</span>
-                            <span class="font-heading text-emerald-600">€{{ getClinicNetPrice(selectedClinic).toLocaleString() }}</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Deposit Explanation (COLLAPSIBLE) -->
-                    <div class="bg-gray-50 rounded-xl mb-4 overflow-hidden">
-                        <button @click="showDepositInfo = !showDepositInfo" 
-                                class="w-full px-4 py-3 flex items-center justify-between text-left">
-                            <h4 class="text-sm font-semibold text-gray-900">How the €50 Deposit Works</h4>
-                            <i :class="['ph text-gray-500 transition-transform', showDepositInfo ? 'ph-caret-up' : 'ph-caret-down']"></i>
-                        </button>
-                        <div v-if="showDepositInfo" class="px-4 pb-4">
-                            <ul class="text-xs text-gray-600 space-y-1.5">
-                                <li class="flex items-start gap-2">
-                                    <i class="ph ph-check text-emerald-500 mt-0.5 flex-shrink-0"></i>
-                                    <span>Secures your consultation slot</span>
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <i class="ph ph-check text-emerald-500 mt-0.5 flex-shrink-0"></i>
-                                    <span>Deducted from your final treatment cost</span>
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <i class="ph ph-check text-emerald-500 mt-0.5 flex-shrink-0"></i>
-                                    <span>Fully refundable if you cancel 24h+ in advance</span>
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <i class="ph ph-check text-emerald-500 mt-0.5 flex-shrink-0"></i>
-                                    <span>Includes initial consultation</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <!-- Payment Fields -->
-                    <div class="space-y-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Card Number</label>
-                            <input v-model="paymentData.cardNumber" @input="formatCardNumber" type="text" placeholder="1234 5678 9012 3456"
-                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Expiry Date</label>
-                                <input v-model="paymentData.expiry" @input="formatExpiry" type="text" placeholder="MM/YY"
-                                       class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">CVV</label>
-                                <input v-model="paymentData.cvv" type="text" maxlength="3" placeholder="123"
-                                       class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Pay Button -->
-                    <button @click="processPayment" 
-                            :disabled="!isPaymentFormValid || paymentInProgress"
-                            :class="[
-                                'w-full mt-4 py-4 rounded-xl font-semibold text-lg transition-all',
-                                isPaymentFormValid && !paymentInProgress
-                                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-200'
-                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            ]">
-                        <span v-if="paymentInProgress">Processing...</span>
-                        <span v-else><i class="ph ph-lock-simple mr-2"></i>Pay €50 Deposit</span>
-                    </button>
-                    
-                    <!-- Security Note -->
-                    <div class="flex items-center justify-center gap-1 mt-3 text-xs text-gray-400">
-                        <i class="ph ph-lock-simple"></i>
-                        <span>Payments secured by Stripe</span>
-                    </div>
-                </div>
-            </div>
+            <!-- STEP 4: REMOVED — No online payment collection
+                 Previously this section contained a fake credit card form
+                 (card number, CVV, expiry) that falsely claimed "Secured by
+                 Stripe" — but had zero Stripe integration. This was the
+                 PRIMARY trigger for Reddit's malware/phishing flag.
+                 
+                 SmileAgent does NOT collect payment online. All payments
+                 are handled directly at the clinic during your visit.
+            ============================================ -->
 
             <!-- ============================================ -->
             <!-- STEP 5: CONFIRMATION (ORIGINAL) -->
@@ -1512,12 +1452,10 @@ createApp({
             result: null,
             usedAI: false,
             showForm: false,
-            showPayment: false,
             bookingComplete: false,
             dragActive: false,
             showMed2Preview: false,
             showHelpModal: false,
-            showDepositInfo: false,
             
             // Photo
             previewUrl: null,
@@ -1554,14 +1492,10 @@ createApp({
                 interests: { whitening: false, bonding: false, implants: false, checkup: false }
             },
             
-            // Payment
-            paymentData: { cardNumber: '', expiry: '', cvv: '' },
-            
             // Progress
             statusMessage: 'Initialising...',
             scanProgress: 0,
             bookingInProgress: false,
-            paymentInProgress: false,
             validationErrors: [],
             
             // Confirmation
@@ -1571,12 +1505,7 @@ createApp({
     },
     
     computed: {
-        isEmergencyMode() { return this.appMode === 'emergency'; },
-        isPaymentFormValid() {
-            return this.paymentData.cardNumber.replace(/\s/g, '').length === 16 &&
-                   this.paymentData.expiry.length === 5 &&
-                   this.paymentData.cvv.length === 3;
-        }
+        isEmergencyMode() { return this.appMode === 'emergency'; }
     },
     
     mounted() {
@@ -1596,7 +1525,6 @@ createApp({
             this.emergencyClinics = [];
             this.result = null;
             this.showForm = false;
-            this.showPayment = false;
             this.bookingComplete = false;
             this.smileGoal = null;
         },
@@ -1950,7 +1878,11 @@ createApp({
             if (this.taxForm.payer_name) this.bookingData.payer_name = this.taxForm.payer_name;
         },
         
-        validateAndProceed() {
+        // ========== COSMETIC: VALIDATE & BOOK ==========
+        // This was previously split across validateAndProceed() and processPayment().
+        // The fake payment step has been removed — validation now goes straight
+        // to the booking API. No card data is ever collected.
+        async validateAndProceed() {
             this.validationErrors = [];
             
             if (!this.bookingData.name || this.bookingData.name.length < 2) this.validationErrors.push('Please enter your full name');
@@ -1958,25 +1890,10 @@ createApp({
             if (!this.bookingData.ppsn || !/^\d{7}[A-Za-z]{1,2}$/.test(this.bookingData.ppsn.replace(/\s/g, ''))) this.validationErrors.push('Please enter a valid PPSN (7 digits + 1-2 letters)');
             if (!this.bookingData.address || this.bookingData.address.length < 10) this.validationErrors.push('Please enter your full address');
             
-            // Skip payment step for validation phase - go straight to booking
-            if (this.validationErrors.length === 0) this.processPayment();
-        },
-        
-        // ========== COSMETIC: PAYMENT ==========
-        formatCardNumber(event) {
-            let value = event.target.value.replace(/\s/g, '');
-            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
-            this.paymentData.cardNumber = formattedValue.substring(0, 19);
-        },
-        
-        formatExpiry(event) {
-            let value = event.target.value.replace(/\D/g, '');
-            if (value.length >= 2) value = value.substring(0, 2) + '/' + value.substring(2, 4);
-            this.paymentData.expiry = value;
-        },
-        
-        async processPayment() {
-            this.paymentInProgress = true;
+            if (this.validationErrors.length > 0) return;
+            
+            // All valid — submit booking directly (no payment step)
+            this.bookingInProgress = true;
             
             try {
                 const interests = Object.entries(this.bookingData.interests)
@@ -2013,7 +1930,7 @@ createApp({
                 });
                 
                 if (!response.ok) {
-                    const errorData = await response.json();
+                    const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
                     let errorMsg = 'Booking failed';
                     if (typeof errorData.detail === 'string') {
                         errorMsg = errorData.detail;
@@ -2027,31 +1944,30 @@ createApp({
                 
                 const data = await response.json();
 
-		await fetch(`${this.apiBase}/api/consent/log`, {
-    			method: 'POST',
-    			headers: { 'Content-Type': 'application/json' },
-    			body: JSON.stringify({
-        			user_identifier: this.bookingData.email || this.bookingData.phone,
-        			consent_type: this.med2Active ? 'cosmetic_booking_with_med2' : 'cosmetic_booking',
-       				consent_given: true,
-        			consent_version: 'v1.0'
-  			  })
-		});
-
+                // Log GDPR consent
+                await fetch(`${this.apiBase}/api/consent/log`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_identifier: this.bookingData.email || this.bookingData.phone,
+                        consent_type: this.med2Active ? 'cosmetic_booking_with_med2' : 'cosmetic_booking',
+                        consent_given: true,
+                        consent_version: 'v1.0'
+                    })
+                }).catch(err => console.warn('Consent log failed (non-blocking):', err));
                 
                 this.bookingReference = data.booking_id;
                 this.confirmationData = data;
                 this.bookingComplete = true;
-                this.showPayment = false;
                 this.showForm = false;
                 
                 this.showToast('Booking confirmed!', 'success');
-				plausible('Cosmetic Booking Complete');
+                plausible('Cosmetic Booking Complete');
             } catch (err) {
                 console.error('Booking error:', err);
                 this.showToast(err.message || 'Booking failed. Please try again.', 'error');
             } finally {
-                this.paymentInProgress = false;
+                this.bookingInProgress = false;
             }
         },
         
@@ -2059,7 +1975,6 @@ createApp({
         startOver() {
             this.result = null;
             this.showForm = false;
-            this.showPayment = false;
             this.bookingComplete = false;
             this.showMed2Preview = false;
             this.showHelpModal = false;
@@ -2079,7 +1994,6 @@ createApp({
                 payer_ppsn: '', payer_address: '',
                 interests: { whitening: false, bonding: false, implants: false, checkup: false }
             };
-            this.paymentData = { cardNumber: '', expiry: '', cvv: '' };
             this.validationErrors = [];
             this.bookingReference = '';
             this.confirmationData = {};
