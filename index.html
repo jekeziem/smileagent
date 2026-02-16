@@ -36,7 +36,12 @@
         jsDelivr is more reliable than unpkg for production use.
     -->
     <script src="https://cdn.jsdelivr.net/npm/vue@3.4.27/dist/vue.global.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1"></script>
+
+    <!-- Phosphor Icons v2.1.2 — only load the 2 weights we use (regular + fill).
+         Loading individual CSS files = ~200KB vs ~3MB for the full script bundle.
+         If you need other weights (thin, light, bold, duotone), add their CSS here. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -111,17 +116,6 @@
         </div>
     </div>
 
-    <!-- Server Warming Banner — shown during Render cold start -->
-    <div v-if="serverWaking" class="fixed top-0 left-0 right-0 z-40 bg-amber-50 border-b border-amber-200 px-4 py-2 text-center">
-        <div class="flex items-center justify-center gap-2 text-sm text-amber-800">
-            <svg class="animate-spin h-4 w-4 text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-            </svg>
-            <span>Waking up server — this takes about 30 seconds on first visit...</span>
-        </div>
-    </div>
-
     <!-- Main Container -->
     <div class="max-w-md mx-auto px-4 py-6 min-h-screen" :class="{ 'urgent-mode': isEmergencyMode && triageStep > 0 }">
         
@@ -145,21 +139,6 @@
             <h1 v-else class="font-heading text-2xl font-bold text-gray-900 mb-1">Your Smile,<br>Optimised.</h1>
             <p v-if="!appMode" class="text-sm text-gray-500">The Relief You Need.<br>The Smile You Want.</p>
         </header>
-
-        <!-- ============================================ -->
-        <!-- SERVER STATUS BANNER (cold start awareness) -->
-        <!-- ============================================ -->
-        <div v-if="serverWaking && !serverReady" class="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 animate-pulse">
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-                <p class="text-sm text-amber-800 font-medium">Waking up server — this takes about 30 seconds on first visit...</p>
-            </div>
-        </div>
-        <div v-if="serverError" class="mb-4 bg-red-50 border border-red-200 rounded-xl p-3">
-            <div class="flex items-center justify-between">
-                <p class="text-sm text-red-800">Server unavailable. <button @click="warmUpServer()" class="underline font-medium">Retry</button></p>
-            </div>
-        </div>
 
         <!-- ============================================ -->
         <!-- ENTRY POINT: MODE SELECTION -->
@@ -1446,12 +1425,18 @@ const { createApp } = Vue;
 createApp({
     data() {
         return {
-            apiBase: 'https://smileagent-heak.onrender.com',
+            // API base URL — CRITICAL for CORS
+            // In production (smileagent.ie or Render URL): use '' (relative paths).
+            // This means /api/clinics goes to the SAME domain the page loaded from,
+            // so the browser treats it as same-origin — no CORS at all.
+            // Only use the full Render URL when developing locally.
+            apiBase: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                ? 'https://smileagent-heak.onrender.com'
+                : '',
             
-            // Server health — Render free tier cold-starts take 30-50s
+            // Server readiness — tracked internally, never shown to user.
+            // The warmup ping wakes Render silently; apiFetch retries handle the rest.
             serverReady: false,
-            serverWaking: false,
-            serverError: false,
             
             // Mode Selection
             appMode: null,
@@ -1561,39 +1546,31 @@ createApp({
         // "Something went wrong" just because the server was asleep.
         
         async warmUpServer() {
-            this.serverWaking = true;
-            this.serverReady = false;
-            
-            // Render cold starts can take 30-50s. We retry up to 3 times
-            // with increasing delays to give the server time to spin up.
-            const MAX_ATTEMPTS = 3;
-            const DELAYS = [0, 8000, 12000]; // immediate, then 8s, then 12s
-            
-            for (let i = 0; i < MAX_ATTEMPTS; i++) {
-                if (i > 0) await new Promise(r => setTimeout(r, DELAYS[i]));
+            // Silently pings /health to wake Render's free tier.
+            // No banners, no toasts — the user never knows.
+            // apiFetch() handles retries if the server is still waking
+            // when the user actually interacts with something.
+            for (let i = 0; i < 3; i++) {
+                if (i > 0) await new Promise(r => setTimeout(r, 8000));
                 try {
                     const controller = new AbortController();
                     const timeout = setTimeout(() => controller.abort(), 45000);
-                    const res = await fetch(`${this.apiBase}/health`, { signal: controller.signal });
+                    const res = await fetch(`${this.apiBase}/health`, {
+                        signal: controller.signal,
+                        mode: 'cors'
+                    });
                     clearTimeout(timeout);
                     if (res.ok) {
-                        console.log(`Server ready on attempt ${i + 1}`);
                         this.serverReady = true;
-                        this.serverWaking = false;
                         this.loadClinics();
                         return;
                     }
                 } catch (e) {
-                    console.warn(`Warm-up attempt ${i + 1}/${MAX_ATTEMPTS}:`, e.message);
+                    console.warn(`Silent warm-up attempt ${i + 1}/3:`, e.message);
                 }
             }
-            
-            // All retries exhausted
-            this.serverWaking = false;
-            this.serverError = true;
-            console.error('Server warm-up failed after all retries');
-            this.showToast('Server is starting up — please refresh in a moment', 'warning');
-            // Still try loading clinics in case server comes online
+            // Server didn't respond — still try loading clinics;
+            // apiFetch will retry when user actually triggers an action.
             this.loadClinics();
         },
         
@@ -1710,10 +1687,7 @@ createApp({
                 this.triageStep = 'results';
             } catch (err) {
                 console.error('Triage failed:', err);
-                const msg = this.serverReady
-                    ? 'Triage assessment failed — please try again.'
-                    : 'Server is still waking up — please wait a moment and try again.';
-                this.showToast(msg, 'error');
+                this.showToast('Could not complete assessment — please try again.', 'error');
             } finally {
                 this.triageLoading = false;
             }
@@ -1889,9 +1863,10 @@ createApp({
                 this.clinics = data.clinics.map(c => ({ ...c, selected_slot: null }));
             } catch (err) {
                 console.error('Failed to load clinics:', err);
-                // Don't toast on initial load — the warmup banner handles it
-                if (this.serverReady) {
-                    this.showToast('Could not load clinics. Tap to retry.', 'error');
+                // Only show error if user actively selected a treatment
+                // (not on background initial load)
+                if (this.selectedTreatment) {
+                    this.showToast('Could not load clinics — please try again.', 'error');
                 }
             }
         },
@@ -1973,10 +1948,7 @@ createApp({
             } catch (err) {
                 clearInterval(interval);
                 console.error('Analysis error:', err);
-                const msg = this.serverReady
-                    ? 'Analysis failed. Please try again.'
-                    : 'Server is still starting — please wait a moment and try again.';
-                this.showToast(msg, 'error');
+                this.showToast('Analysis failed — please try again.', 'error');
                 this.usedAI = false;
             } finally {
                 this.loading = false;
