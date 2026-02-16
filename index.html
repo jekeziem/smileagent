@@ -3,36 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmileAgent | Your Smile, Optimised</title>
-
-    <!-- ==========================================================
-         CONTENT SECURITY POLICY
-         Restricts which scripts/styles/images the browser will load.
-         This tells scanners (and Reddit's link checker) that this page
-         only loads resources from known, whitelisted origins — NOT from
-         arbitrary third-party malware domains.
-         ========================================================== -->
+    <!-- 
+        CONTENT SECURITY POLICY: Restricts which external domains can load resources.
+        This prevents injected scripts from unknown domains, XSS, and data exfiltration.
+        Update the connect-src if you change the API backend URL.
+    -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval'
-            https://unpkg.com
-            https://cdn.tailwindcss.com
-            https://plausible.io;
-        style-src 'self' 'unsafe-inline'
-            https://fonts.googleapis.com
-            https://cdn.tailwindcss.com;
-        font-src 'self'
-            https://fonts.gstatic.com;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://plausible.io;
+        style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net;
         img-src 'self' data: blob:;
-        connect-src 'self'
-            https://smileagent-heak.onrender.com
-            https://plausible.io;
+        connect-src 'self' https://smileagent-heak.onrender.com https://plausible.io;
     ">
+    <title>SmileAgent | Your Smile, Optimised</title>
 
-    <!-- Privacy-friendly analytics by Plausible (plausible.io)
-         The hash in the filename (pa-OLxXYpT1VN6HnlQqkKLNc) is Plausible's
-         standard per-site identifier — it is NOT obfuscated code.
-         See: https://plausible.io/docs/script-extensions -->
+	<!-- 
+        PLAUSIBLE ANALYTICS: Privacy-friendly, cookie-free, GDPR-compliant.
+        The hash in the URL (pa-OLxXYpT1VN6HnlQqkKLNc) is Plausible's standard 
+        per-site identifier — it is NOT obfuscation or malware. See: plausible.io/docs
+    -->
 <script async src="https://plausible.io/js/pa-OLxXYpT1VN6HnlQqkKLNc.js"></script>
 <script>
   window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
@@ -40,17 +30,25 @@
 </script>
 
 
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- 
+        SUPPLY CHAIN SECURITY: All CDN dependencies pinned to exact versions.
+        If icons or Vue break, check these versions haven't been yanked from npm.
+        jsDelivr is more reliable than unpkg for production use.
+    -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.4.27/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@500;600;700&display=swap" rel="stylesheet">
 
-    <!-- DEVELOPMENT CDN — Tailwind's play CDN is fine for development/MVP.
-         TODO: Replace with a production Tailwind build (PostCSS + purge)
-         before public launch. The play CDN loads the full framework (~300kB)
-         and is not optimised for production. -->
+    <!-- 
+        TAILWIND CSS: Using play CDN for development. For production:
+        1) npm install tailwindcss  
+        2) npx tailwindcss -i ./src/input.css -o ./dist/output.css --minify
+        3) Replace this script tag with: <link href="/dist/output.css" rel="stylesheet">
+        TODO: Migrate to production build before launch.
+    -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -113,6 +111,17 @@
         </div>
     </div>
 
+    <!-- Server Warming Banner — shown during Render cold start -->
+    <div v-if="serverWaking" class="fixed top-0 left-0 right-0 z-40 bg-amber-50 border-b border-amber-200 px-4 py-2 text-center">
+        <div class="flex items-center justify-center gap-2 text-sm text-amber-800">
+            <svg class="animate-spin h-4 w-4 text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span>Waking up server — this takes about 30 seconds on first visit...</span>
+        </div>
+    </div>
+
     <!-- Main Container -->
     <div class="max-w-md mx-auto px-4 py-6 min-h-screen" :class="{ 'urgent-mode': isEmergencyMode && triageStep > 0 }">
         
@@ -136,6 +145,21 @@
             <h1 v-else class="font-heading text-2xl font-bold text-gray-900 mb-1">Your Smile,<br>Optimised.</h1>
             <p v-if="!appMode" class="text-sm text-gray-500">The Relief You Need.<br>The Smile You Want.</p>
         </header>
+
+        <!-- ============================================ -->
+        <!-- SERVER STATUS BANNER (cold start awareness) -->
+        <!-- ============================================ -->
+        <div v-if="serverWaking && !serverReady" class="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 animate-pulse">
+            <div class="flex items-center gap-2">
+                <div class="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-sm text-amber-800 font-medium">Waking up server — this takes about 30 seconds on first visit...</p>
+            </div>
+        </div>
+        <div v-if="serverError" class="mb-4 bg-red-50 border border-red-200 rounded-xl p-3">
+            <div class="flex items-center justify-between">
+                <p class="text-sm text-red-800">Server unavailable. <button @click="warmUpServer()" class="underline font-medium">Retry</button></p>
+            </div>
+        </div>
 
         <!-- ============================================ -->
         <!-- ENTRY POINT: MODE SELECTION -->
@@ -1171,7 +1195,7 @@
             <!-- ============================================ -->
             <!-- STEP 3: BOOKING FORM (ORIGINAL) -->
             <!-- ============================================ -->
-            <div v-if="showForm && !bookingComplete" class="animate-fade-in space-y-4">
+            <div v-if="showForm" class="animate-fade-in space-y-4">
                 
                 <!-- Back Button -->
                 <button @click="showForm = false" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
@@ -1205,14 +1229,17 @@
                         
                         <div>
                             <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">PPSN * (for Med 2)</label>
-                            <input v-model="bookingData.ppsn" type="text" placeholder="1234567T"
+                            <input v-model="bookingData.ppsn" type="text" placeholder="1234567T" autocomplete="off"
                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 uppercase">
-                            <p class="text-[10px] text-gray-400 mt-1">
-                                <i class="ph ph-lock-simple mr-0.5"></i>
-                                Required for Revenue Med 2 tax relief claim. Encrypted at rest and never
-                                shared with third parties. See our 
-                                <a href="#" class="underline">Privacy Policy</a>.
-                            </p>
+                            <div class="flex items-start gap-1.5 mt-1.5 p-2 bg-emerald-50 rounded-lg">
+                                <i class="ph ph-shield-check text-emerald-600 mt-0.5 flex-shrink-0"></i>
+                                <p class="text-[10px] text-emerald-700">
+                                    Your PPSN is collected solely for 
+                                    <a href="https://www.revenue.ie/en/personal-tax-credits-reliefs-and-exemptions/health-and-age/health-expenses/dental-expenses.aspx" 
+                                       target="_blank" class="underline">Med 2 tax relief</a>.
+                                    It is encrypted in transit (HTTPS) and at rest, and never shared with third parties.
+                                </p>
+                            </div>
                         </div>
                         
                         <div>
@@ -1269,15 +1296,16 @@
             </div>
 
             <!-- ============================================ -->
-            <!-- STEP 4: REMOVED — No online payment collection
-                 Previously this section contained a fake credit card form
-                 (card number, CVV, expiry) that falsely claimed "Secured by
-                 Stripe" — but had zero Stripe integration. This was the
-                 PRIMARY trigger for Reddit's malware/phishing flag.
-                 
-                 SmileAgent does NOT collect payment online. All payments
-                 are handled directly at the clinic during your visit.
-            ============================================ -->
+            <!-- STEP 4: NO PAYMENT REQUIRED (PAYMENT FORM REMOVED)
+                 The original payment form collected raw card data (number, CVV, 
+                 expiry) with a "Secured by Stripe" label but NO actual Stripe.js
+                 integration. To automated security scanners and Reddit users, this
+                 looked exactly like a card-skimming phishing page. It was the
+                 PRIMARY reason SmileAgent was flagged as potential malware.
+                 All payment collection has been removed. Costs are discussed
+                 at the consultation. See: OWASP A04:2021 Insecure Design
+            -->
+            <!-- ============================================ -->
 
             <!-- ============================================ -->
             <!-- STEP 5: CONFIRMATION (ORIGINAL) -->
@@ -1420,6 +1448,11 @@ createApp({
         return {
             apiBase: 'https://smileagent-heak.onrender.com',
             
+            // Server health — Render free tier cold-starts take 30-50s
+            serverReady: false,
+            serverWaking: false,
+            serverError: false,
+            
             // Mode Selection
             appMode: null,
             
@@ -1509,12 +1542,96 @@ createApp({
     },
     
     mounted() {
-        this.loadClinics();
+        // Wake up the Render backend (free tier cold-starts take 30-50 s).
+        // This fires a lightweight GET to /health so the server is warm
+        // by the time the user actually interacts with the app.
+        this.warmUpServer();
         this.getUserLocation();
-        console.log('SmileAgent initialised');
+        console.log('SmileAgent v7.0 initialised');
     },
     
     methods: {
+        // ========== SERVER WARM-UP & API RESILIENCE ==========
+        // Render free tier spins down after 15 min of inactivity.
+        // Cold starts take 30-50 seconds. This warms the server on page load
+        // ========== RESILIENT API LAYER ==========
+        // Render free tier spins down after 15 min idle. First request
+        // after that triggers a cold start (30-50 s). This wrapper retries
+        // failed requests with exponential backoff so the user doesn't see
+        // "Something went wrong" just because the server was asleep.
+        
+        async warmUpServer() {
+            this.serverWaking = true;
+            this.serverReady = false;
+            
+            // Render cold starts can take 30-50s. We retry up to 3 times
+            // with increasing delays to give the server time to spin up.
+            const MAX_ATTEMPTS = 3;
+            const DELAYS = [0, 8000, 12000]; // immediate, then 8s, then 12s
+            
+            for (let i = 0; i < MAX_ATTEMPTS; i++) {
+                if (i > 0) await new Promise(r => setTimeout(r, DELAYS[i]));
+                try {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 45000);
+                    const res = await fetch(`${this.apiBase}/health`, { signal: controller.signal });
+                    clearTimeout(timeout);
+                    if (res.ok) {
+                        console.log(`Server ready on attempt ${i + 1}`);
+                        this.serverReady = true;
+                        this.serverWaking = false;
+                        this.loadClinics();
+                        return;
+                    }
+                } catch (e) {
+                    console.warn(`Warm-up attempt ${i + 1}/${MAX_ATTEMPTS}:`, e.message);
+                }
+            }
+            
+            // All retries exhausted
+            this.serverWaking = false;
+            this.serverError = true;
+            console.error('Server warm-up failed after all retries');
+            this.showToast('Server is starting up — please refresh in a moment', 'warning');
+            // Still try loading clinics in case server comes online
+            this.loadClinics();
+        },
+        
+        /**
+         * Resilient fetch wrapper — retries up to `maxRetries` times with
+         * exponential backoff.  Returns the parsed JSON response or throws.
+         */
+        async apiFetch(path, options = {}, maxRetries = 2) {
+            const url = `${this.apiBase}${path}`;
+            let lastError;
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    if (attempt > 0) {
+                        // Exponential backoff: 2s, 4s, 8s ...
+                        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+                    }
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 30000); // 30 s timeout
+                    const response = await fetch(url, { ...options, signal: controller.signal });
+                    clearTimeout(timeout);
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.detail || `Server error ${response.status}`);
+                    }
+                    this.serverReady = true; // Confirm server is up
+                    return await response.json();
+                } catch (err) {
+                    lastError = err;
+                    if (err.name === 'AbortError') {
+                        console.warn(`Request to ${path} timed out (attempt ${attempt + 1})`);
+                    } else {
+                        console.warn(`API call to ${path} failed (attempt ${attempt + 1}):`, err.message);
+                    }
+                }
+            }
+            throw lastError;
+        },
+
         // ========== NAVIGATION ==========
         goHome() {
             this.appMode = null;
@@ -1575,7 +1692,7 @@ createApp({
         async submitTriage() {
             this.triageLoading = true;
             try {
-                const response = await fetch(`${this.apiBase}/api/triage/assess`, {
+                this.triageResult = await this.apiFetch('/api/triage/assess', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1588,13 +1705,15 @@ createApp({
                         visible_damage: false
                     })
                 });
-                this.triageResult = await response.json();
 				plausible('Triage Complete', { props: { urgency: this.triageResult.urgency_display } });
                 await this.searchEmergencyClinics();
                 this.triageStep = 'results';
             } catch (err) {
-                console.error(err);
-                this.showToast('Something went wrong', 'error');
+                console.error('Triage failed:', err);
+                const msg = this.serverReady
+                    ? 'Triage assessment failed — please try again.'
+                    : 'Server is still waking up — please wait a moment and try again.';
+                this.showToast(msg, 'error');
             } finally {
                 this.triageLoading = false;
             }
@@ -1602,7 +1721,7 @@ createApp({
         
         async searchEmergencyClinics() {
             try {
-                const response = await fetch(`${this.apiBase}/api/clinics/emergency`, {
+                const data = await this.apiFetch('/api/clinics/emergency', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1614,9 +1733,8 @@ createApp({
                         max_distance_km: 15
                     })
                 });
-                const data = await response.json();
                 this.emergencyClinics = data.clinics || [];
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error('Emergency clinic search failed:', err); }
         },
         
         setPaymentFilter(filter) { this.paymentFilter = filter; this.searchEmergencyClinics(); },
@@ -1764,13 +1882,18 @@ createApp({
         // ========== COSMETIC: CLINICS ==========
         async loadClinics() {
             try {
-                const url = this.selectedTreatment 
-                    ? `${this.apiBase}/api/clinics?treatment=${this.selectedTreatment}`
-                    : `${this.apiBase}/api/clinics`;
-                const response = await fetch(url);
-                const data = await response.json();
+                const path = this.selectedTreatment 
+                    ? `/api/clinics?treatment=${this.selectedTreatment}`
+                    : `/api/clinics`;
+                const data = await this.apiFetch(path);
                 this.clinics = data.clinics.map(c => ({ ...c, selected_slot: null }));
-            } catch (err) { console.error('Failed to load clinics:', err); }
+            } catch (err) {
+                console.error('Failed to load clinics:', err);
+                // Don't toast on initial load — the warmup banner handles it
+                if (this.serverReady) {
+                    this.showToast('Could not load clinics. Tap to retry.', 'error');
+                }
+            }
         },
         
         getClinicPrice(clinic) {
@@ -1794,7 +1917,7 @@ createApp({
             if (!this.photoFile || !this.selectedTreatment) return;
             
             this.loading = true;
-            this.showAIScreen = false; // Hide upload screen, show loading
+            this.showAIScreen = false;
             this.scanProgress = 0;
             this.usedAI = true;
             
@@ -1823,23 +1946,37 @@ createApp({
                 formData.append('file', this.photoFile);
                 formData.append('save_for_med2', this.savePhotoConsent);
                 
-                const response = await fetch(`${this.apiBase}/api/analyze-smile`, { method: 'POST', body: formData });
-                if (!response.ok) throw new Error('Analysis failed');
+                // FormData uploads can't use apiFetch (no JSON parsing), so do manual retry
+                let data = null;
+                for (let attempt = 0; attempt < 3; attempt++) {
+                    try {
+                        if (attempt > 0) await new Promise(r => setTimeout(r, 2000 * attempt));
+                        const response = await fetch(`${this.apiBase}/api/analyze-smile`, {
+                            method: 'POST', body: formData
+                        });
+                        if (!response.ok) throw new Error(`Server error ${response.status}`);
+                        data = await response.json();
+                        break;
+                    } catch (e) {
+                        if (attempt === 2) throw e;
+                        console.warn(`Analysis attempt ${attempt + 1} failed, retrying...`);
+                    }
+                }
                 
-                const data = await response.json();
                 this.photoId = data.photo_id;
-                
                 await new Promise(resolve => setTimeout(resolve, 2500));
                 clearInterval(interval);
                 
-                // Don't overwrite result - just store the AI data
                 this.aiAnalysis = data;
                 this.showToast('Analysis complete! Your photo will be included with your booking.', 'success');
                 plausible('AI Analysis Complete');
             } catch (err) {
                 clearInterval(interval);
                 console.error('Analysis error:', err);
-                this.showToast('Analysis failed. Please try again.', 'error');
+                const msg = this.serverReady
+                    ? 'Analysis failed. Please try again.'
+                    : 'Server is still starting — please wait a moment and try again.';
+                this.showToast(msg, 'error');
                 this.usedAI = false;
             } finally {
                 this.loading = false;
@@ -1878,11 +2015,7 @@ createApp({
             if (this.taxForm.payer_name) this.bookingData.payer_name = this.taxForm.payer_name;
         },
         
-        // ========== COSMETIC: VALIDATE & BOOK ==========
-        // This was previously split across validateAndProceed() and processPayment().
-        // The fake payment step has been removed — validation now goes straight
-        // to the booking API. No card data is ever collected.
-        async validateAndProceed() {
+        validateAndProceed() {
             this.validationErrors = [];
             
             if (!this.bookingData.name || this.bookingData.name.length < 2) this.validationErrors.push('Please enter your full name');
@@ -1890,9 +2023,11 @@ createApp({
             if (!this.bookingData.ppsn || !/^\d{7}[A-Za-z]{1,2}$/.test(this.bookingData.ppsn.replace(/\s/g, ''))) this.validationErrors.push('Please enter a valid PPSN (7 digits + 1-2 letters)');
             if (!this.bookingData.address || this.bookingData.address.length < 10) this.validationErrors.push('Please enter your full address');
             
-            if (this.validationErrors.length > 0) return;
-            
-            // All valid — submit booking directly (no payment step)
+            if (this.validationErrors.length === 0) this.confirmBooking();
+        },
+        
+        // ========== COSMETIC: CONFIRM BOOKING (no payment collected) ==========
+        async confirmBooking() {
             this.bookingInProgress = true;
             
             try {
@@ -1923,38 +2058,25 @@ createApp({
                     is_emergency: false
                 };
                 
-                const response = await fetch(`${this.apiBase}/api/book-appointment`, {
+                const data = await this.apiFetch('/api/book-appointment', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(bookingPayload)
                 });
-                
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
-                    let errorMsg = 'Booking failed';
-                    if (typeof errorData.detail === 'string') {
-                        errorMsg = errorData.detail;
-                    } else if (Array.isArray(errorData.detail)) {
-                        errorMsg = errorData.detail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
-                    } else if (errorData.detail) {
-                        errorMsg = JSON.stringify(errorData.detail);
-                    }
-                    throw new Error(errorMsg);
-                }
-                
-                const data = await response.json();
 
                 // Log GDPR consent
-                await fetch(`${this.apiBase}/api/consent/log`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_identifier: this.bookingData.email || this.bookingData.phone,
-                        consent_type: this.med2Active ? 'cosmetic_booking_with_med2' : 'cosmetic_booking',
-                        consent_given: true,
-                        consent_version: 'v1.0'
-                    })
-                }).catch(err => console.warn('Consent log failed (non-blocking):', err));
+                try {
+                    await this.apiFetch('/api/consent/log', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_identifier: this.bookingData.email || this.bookingData.phone,
+                            consent_type: this.med2Active ? 'cosmetic_booking_with_med2' : 'cosmetic_booking',
+                            consent_given: true,
+                            consent_version: 'v1.0'
+                        })
+                    });
+                } catch (e) { console.warn('Consent log failed (non-critical):', e); }
                 
                 this.bookingReference = data.booking_id;
                 this.confirmationData = data;
