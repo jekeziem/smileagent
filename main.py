@@ -1,5 +1,5 @@
 """
-SmileAgent API v5.0 — Emergency Triage + Cosmetic Booking Platform
+SmileAgent API v6.0 — Emergency Triage + Cosmetic Booking Platform
 
 Production-hardened dental booking API for the Irish market.
 
@@ -24,6 +24,11 @@ Security notes
 
 Changelog
 ---------
+v7.0  2026-02-16  Fixed ghost warmUpServer method, duplicate method definitions,
+                  removed fake payment form, improved cold-start retry logic (3 attempts),
+                  server warming banner, pinned CDN dependencies, PPSN security notice.
+v6.0  2026-02-16  Resilient cold-start handling, rate limiting, security headers,
+                  OWASP hardening, pinned CDN dependencies, global error handler.
 v5.0  2026-02-07  Security audit pass — removed fake payment form, expanded
                   emergency clinics to 13, fixed bare excepts, XSS in signature
                   page, deprecated lifespan pattern, consolidated imports.
@@ -98,7 +103,7 @@ cipher_suite = Fernet(
 async def lifespan(app: FastAPI):
     """Runs once on startup (before yield) and once on shutdown (after yield)."""
     logger.info("=" * 60)
-    logger.info("🚀 SmileAgent API v5.0 Started")
+    logger.info("🚀 SmileAgent API v7.0 Started")
     logger.info("=" * 60)
     logger.info(f"📁 Base directory: {BASE_DIR}")
     logger.info(f"🏥 Clinics loaded: {len(CLINICS)}")
@@ -112,7 +117,7 @@ async def lifespan(app: FastAPI):
     logger.info("SmileAgent API shutting down")
 
 # ---- App init (must come before route decorators) ----
-app = FastAPI(title="SmileAgent API", version="5.0.0", lifespan=lifespan)
+app = FastAPI(title="SmileAgent API", version="7.0.0", lifespan=lifespan)
 
 # ==========================================================================
 # UTILITY FUNCTIONS — Encryption helpers for PII-at-rest
@@ -164,15 +169,69 @@ except ImportError:
 BASE_DIR = Path(__file__).resolve().parent
 
 # CORS: defaults to smileagent.ie; override with comma-separated list in env.
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://smileagent.ie").split(",")
+# Include localhost variants for local development.
+# IMPORTANT: On Render, set ALLOWED_ORIGINS=https://smileagent.ie,https://www.smileagent.ie
+_DEFAULT_ORIGINS = "https://smileagent.ie,https://www.smileagent.ie,http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000,http://localhost:8080"
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", _DEFAULT_ORIGINS).split(",")
+ALLOWED_ORIGINS = [o.strip() for o in ALLOWED_ORIGINS if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
+
+# ---------- Rate Limiter (in-memory, per-IP) ----------
+# Prevents brute-force, scraping, and abuse of triage/booking endpoints.
+# In production with multiple workers, swap for Redis-backed limiter.
+from collections import defaultdict
+import time as _time
+
+_rate_limits: Dict[str, list] = defaultdict(list)
+_RATE_LIMIT_WINDOW = 60   # seconds
+_RATE_LIMIT_MAX = 30       # requests per window per IP
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """Simple sliding-window rate limiter per client IP."""
+    # Skip rate limiting for health checks (used by uptime monitors)
+    if request.url.path in ("/health", "/", "/docs", "/openapi.json"):
+        return await call_next(request)
+    
+    client_ip = request.client.host if request.client else "unknown"
+    now = _time.time()
+    
+    # Prune old entries outside the window
+    _rate_limits[client_ip] = [t for t in _rate_limits[client_ip] if now - t < _RATE_LIMIT_WINDOW]
+    
+    if len(_rate_limits[client_ip]) >= _RATE_LIMIT_MAX:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Too many requests. Please wait a moment and try again."}
+        )
+    
+    _rate_limits[client_ip].append(now)
+    response = await call_next(request)
+    
+    # Add security headers to every response
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
+    
+    return response
+
+# ---------- Global exception handler ----------
+# Never leak stack traces or internal details to the client.
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled error on {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal error occurred. Please try again."}
+    )
 
 # Directories
 BOOKINGS_FILE = BASE_DIR / "bookings.json"
@@ -1247,11 +1306,11 @@ def generate_brief(brief_input: BriefInput) -> dict:
     briefs.append(brief)
     BRIEFS_FILE.write_text(json.dumps(briefs, indent=2))
     
-    print(f"\n{'='*50}")
-    print(f"EMERGENCY BRIEF: {brief_id}")
-    print(f"Clinic: {brief_input.clinic_name}")
-    print(f"Urgency: {brief_input.urgency_display}")
-    print(f"{'='*50}\n")
+    logger.info('=' * 50)
+    logger.info(f"EMERGENCY BRIEF: {brief_id}")
+    logger.info(f"Clinic: {brief_input.clinic_name}")
+    logger.info(f"Urgency: {brief_input.urgency_display}")
+    logger.info("=" * 50)
     
     return brief
 
@@ -1322,14 +1381,14 @@ Digital Signature Link: {signature_link}
 SmileAgent Booking System
 """
     
-    print(f"\n{'='*50}")
-    print(f"EMAIL TO CLINIC (Simulated)")
-    print(f"{'='*50}")
-    print(f"To: {clinic_email}")
-    print(f"Subject: {subject}")
-    print(f"{'='*50}")
-    print(email_body)
-    print(f"{'='*50}\n")
+    logger.info('=' * 50)
+    logger.info("EMAIL TO CLINIC (Simulated)")
+    logger.info("=" * 50)
+    logger.info(f"To: {clinic_email}")
+    logger.info(f"Subject: {subject}")
+    logger.info("=" * 50)
+    logger.debug(email_body)
+    logger.info("=" * 50)
 
 
 # ============================================================
@@ -1536,7 +1595,7 @@ def generate_med2_pdf(booking: dict, clinic: dict) -> tuple:
     c.drawString(30, y, "PRE-FILLED BY SMILEAGENT — Dentist signature required after treatment")
     
     c.save()
-    print(f"📄 Med 2 PDF generated: {filename}")
+    logger.info(f"Med 2 PDF generated: {filename}")
     return str(filepath), filename
 
 # ============================================================
@@ -1552,9 +1611,11 @@ def serve_index():
 
 @app.get("/health")
 def health_check():
+    """Lightweight endpoint the frontend pings to wake up Render's free tier."""
     return {
         "status": "healthy",
-        "version": "4.0.0",
+        "version": "7.0.0",
+        "timestamp": datetime.now().isoformat(),
         "pdf_enabled": REPORTLAB_AVAILABLE,
         "clinics_loaded": len(CLINICS),
         "treatments_loaded": len(TREATMENTS),
@@ -1686,7 +1747,7 @@ def log_consent(consent: ConsentLog) -> dict:
     consents.append(consent_record)
     CONSENTS_FILE.write_text(json.dumps(consents, indent=2))
     
-    print(f"✅ Consent logged: {consent.consent_type} - {hashed_id}")
+    logger.info(f"Consent logged: {consent.consent_type} - {hashed_id}")
     return consent_record
 
 @app.post("/api/consent/log")
@@ -1716,7 +1777,7 @@ async def analyze_smile(file: UploadFile = File(...), save_for_med2: bool = Form
     content = await file.read()
     filepath.write_bytes(content)
     
-    print(f"📸 Photo uploaded: {photo_id}")
+    logger.info(f"Photo uploaded: {photo_id}")
     
     diagnosis = {
         "confidence_score": 92,
