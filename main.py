@@ -1609,7 +1609,7 @@ def serve_index():
         return FileResponse(str(index))
     return HTMLResponse("<h1>SmileAgent API v4.0</h1><p>index.html not found</p>")
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD", "POST", "OPTIONS"])
 def health_check():
     """Lightweight endpoint the frontend pings to wake up Render's free tier."""
     return {
