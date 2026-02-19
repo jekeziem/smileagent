@@ -842,7 +842,8 @@ CLINICS = [
         "hours": {
             "mon": "09:00-17:00", "tue": "09:00-17:00", "wed": "09:00-17:00",
             "thu": "09:00-17:00", "fri": "09:00-17:00", "sat": None, "sun": None
-      },
+        }
+    },
     {
         "id": 14,
         "clinic_name": "Smiles Dental Bath Avenue",
