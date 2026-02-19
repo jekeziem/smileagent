@@ -842,9 +842,9 @@ CLINICS = [
         "hours": {
             "mon": "09:00-17:00", "tue": "09:00-17:00", "wed": "09:00-17:00",
             "thu": "09:00-17:00", "fri": "09:00-17:00", "sat": None, "sun": None
-        }
-    }
- "id": 14,
+      },
+    {
+        "id": 14,
         "clinic_name": "Smiles Dental Bath Avenue",
         "location": "11 Bath Avenue, Ballsbridge, Dublin 4",
         "eircode": "D04 F5K0",
@@ -1292,7 +1292,7 @@ def match_clinics_for_emergency(search: EmergencyClinicSearch) -> List[dict]:
             "is_open_now": check_if_open(clinic.get("hours", {})),
             "emergency_suitable": emergency_suitable,
             "pricing": clinic.get("pricing", {}),
-            "available_slots": clinic.get("available_slots", [])
+            "available_slots": clinic.get("available_slots", []),
             "live_slot_available": slot_status.get("available"),
             "live_slot_updated": slot_status.get("last_updated"),
             "live_slot_notes": slot_status.get("notes")
