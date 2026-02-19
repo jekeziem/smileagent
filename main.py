@@ -675,47 +675,44 @@ CLINICS = [
         }
     },
     # ------------------------------------------------------------------
-    # ID 10 — Dublin Dental Hospital (HSE Emergency Clinic) — Dublin 2
-    # Source: HSE.ie, Dublin Dental University Hospital
-    # Public emergency service, weekend/bank holiday severe emergencies only
-    # Medical Card: HSE facility — fully covered for eligible patients
+    # ID 10- Truly Dental Baggot St
     # ------------------------------------------------------------------
     {
         "id": 10,
-        "clinic_name": "Dublin Dental University Hospital",
+        "clinic_name": "Truly Dental Baggot Street",
         "location": "Lincoln Place, Dublin 2",
-        "eircode": "D02 F859",
+        "eircode": "D02 E780",
         "coordinates": {"lat": 53.3416, "lng": -6.2508},
-        "phone": "+353 1 612 7200",
-        "email": "dentalemergency@dental.tcd.ie",
+        "phone": "+353 1 676 1536",
+        "email": "info@trulydental.ie",
         "verified": True,
         "cosmetic_partner": False,
         "practitioner": {
-            "name": "HSE DENTAL TEAM",
-            "qualifications": "TCD / HSE Teaching Hospital Staff",
-            "registration_number": "HSE-DDH"
+            "name": "DR KEVIN.DUNNE",
+            "qualifications": "BDentSc TCD",
+            "registration_number": "45678"
         },
         "pricing": {
-            "emergency_exam": 0
+            "emergency_exam": 90
         },
-        "rating": 4.2,
-        "review_count": 78,
-        "top_review": "HSE emergency dental service. Seen on a bank holiday for severe tooth pain. No charge with medical card.",
-        "available_slots": [],
+        "rating": 4.5,
+        "review_count": 26,
+        "top_review": "Great central location and extended hours. Very professional team.",
+        "available_slots": ["Mon 10:00 AM", "Wed 4:00 PM", "Sat 1:00 PM"],
         "medical_card": {
             "accepts": True,
             "accepting_new_patients": True,
-            "last_verified": "2026-02-01",
-            "treatments_covered": ["exam", "extraction", "xray", "emergency_treatment"]
+            "last_verified": "2026-02-15",
+            "treatments_covered": ["exam", "extraction", "xray", "scale_polish", "filling"]
         },
         "prsi_dtbs": True,
         "emergency_slots": {
             "offers_same_day": True,
-            "typical_wait_hours": 4
+            "typical_wait_hours": 2
         },
         "hours": {
-            "mon": "09:00-17:00", "tue": "09:00-17:00", "wed": "09:00-17:00",
-            "thu": "09:00-17:00", "fri": "09:00-17:00", "sat": "09:00-23:00", "sun": "09:00-23:00"
+            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
+            "thu": "08:00-20:00", "fri": "08:00-20:00", "sat": "12:00-218:00", "sun": "12:00-18:00"
         }
     },
     # ------------------------------------------------------------------
@@ -847,7 +844,50 @@ CLINICS = [
             "thu": "09:00-17:00", "fri": "09:00-17:00", "sat": None, "sun": None
         }
     }
+ "id": 14,
+        "clinic_name": "Smiles Dental Bath Avenue",
+        "location": "11 Bath Avenue, Ballsbridge, Dublin 4",
+        "eircode": "D04 F5K0",
+        "coordinates": {"lat": 53.3371, "lng": -6.2334},
+        "phone": "+353 1 667 3556",
+        "email": "bathavenue@smiles.ie",
+        "verified": True,
+        "cosmetic_partner": False,
+        "practitioner": {
+            "name": "DR. SELENA MULVEY",
+            "qualifications": "BDS QUB, Bupa Dentist of the Year",
+            "registration_number": "56789"
+        },
+        "pricing": {
+            "invisalign": 3400,
+            "composite_bonding": 280,
+            "veneers": 600,
+            "whitening": 350,
+            "emergency_exam": 85
+        },
+        "rating": 4.7,
+        "review_count": 94,
+        "top_review": "Dr Bogdan is so friendly and accommodating. The whole process was easy and pain free!",
+        "available_slots": ["Tue 9:00 AM", "Thu 5:00 PM", "Sat 11:00 AM"],
+        "medical_card": {
+            "accepts": True,
+            "accepting_new_patients": True,
+            "last_verified": "2026-02-15",
+            "treatments_covered": ["exam", "extraction", "xray", "scale_polish"]
+        },
+        "prsi_dtbs": True,
+        "emergency_slots": {
+            "offers_same_day": True,
+            "typical_wait_hours": 2
+        },
+        "hours": {
+            "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
+            "thu": "08:00-20:00", "fri": "08:00-17:00", "sat": "10:00-17:00", "sun": None
+        }
+    }
 ]
+
+SLOT_STATUS = {}  # Emergency slot live availability (clinic_id -> {available, last_updated, notes})
 
 TREATMENTS = {
     "invisalign": {
@@ -1228,7 +1268,9 @@ def match_clinics_for_emergency(search: EmergencyClinicSearch) -> List[dict]:
         emergency_suitable = True
         if search.urgency in [UrgencyLevel.RED_AE.value, UrgencyLevel.ORANGE_URGENT.value]:
             emergency_suitable = emergency_info.get("offers_same_day", False)
-        
+          
+        slot_status = SLOT_STATUS.get(clinic["id"], {})
+      
         match = {
             "id": clinic["id"],
             "clinic_name": clinic["clinic_name"],
@@ -1251,6 +1293,9 @@ def match_clinics_for_emergency(search: EmergencyClinicSearch) -> List[dict]:
             "emergency_suitable": emergency_suitable,
             "pricing": clinic.get("pricing", {}),
             "available_slots": clinic.get("available_slots", [])
+            "live_slot_available": slot_status.get("available"),
+            "live_slot_updated": slot_status.get("last_updated"),
+            "live_slot_notes": slot_status.get("notes")
         }
         
         matches.append((match, distance, emergency_suitable))
@@ -1709,6 +1754,35 @@ async def create_brief(brief_input: BriefInput, background_tasks: BackgroundTask
         return brief
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================
+# EMERGENCY SLOT AVAILABILITY
+# ============================================================
+
+class SlotUpdate(BaseModel):
+    clinic_id: int
+    available: bool
+    notes: Optional[str] = None
+
+@app.post("/api/slots/update")
+async def update_emergency_slot(update: SlotUpdate):
+    """Update a clinic's emergency slot availability (manual for now, Twilio later)."""
+    try:
+        SLOT_STATUS[update.clinic_id] = {
+            "available": update.available,
+            "last_updated": datetime.now().isoformat(),
+            "notes": update.notes
+        }
+        print(f"🏥 Slot update: Clinic {update.clinic_id} → {'AVAILABLE' if update.available else 'UNAVAILABLE'}")
+        return {"status": "success", "clinic_id": update.clinic_id, "available": update.available, "last_updated": SLOT_STATUS[update.clinic_id]["last_updated"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/slots/status")
+async def get_slot_status():
+    """Get current emergency slot availability for all clinics."""
+    return {"slots": SLOT_STATUS}
+
 # ============================================================
 # CONSENT LOGGING (GDPR)
 # ============================================================
