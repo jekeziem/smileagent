@@ -173,7 +173,7 @@
                     </div>
                     <div>
                         <p class="text-xs text-gray-500 font-medium">Get in touch</p>
-                        <a href="/cdn-cgi/l/email-protection#137a7d757c53607e7a7f767274767d673d7a76" class="text-sm font-semibold text-gray-900 hover:text-emerald-600 transition-colors"><span class="__cf_email__" data-cfemail="c6afa8a0a986b5abafaaa3a7a1a3a8b2e8afa3">[email&#160;protected]</span></a>
+                        <a href="mailto:info@smileagent.ie" class="text-sm font-semibold text-gray-900 hover:text-emerald-600 transition-colors">info@smileagent.ie</a>
                     </div>
                 </div>
                 
@@ -1376,6 +1376,7 @@
 </div>
 
         </div>
+        </div>
 
         <!-- ============================================ -->
         <!-- MED 2 PREVIEW MODAL -->
@@ -1433,7 +1434,7 @@
     </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 const { createApp } = Vue;
 
 createApp({
@@ -2100,3 +2101,17 @@ createApp({
                 name: '', phone: '', email: '', ppsn: '', address: '',
                 payer_ppsn: '', payer_address: '',
                 interests: { whitening: false, bonding: false, implants: false, checkup: false }
+            };
+            this.validationErrors = [];
+            this.bookingReference = '';
+            this.confirmationData = {};
+            this.appMode = null;
+            this.smileGoal = null;
+            this.loadClinics();
+        }
+    }
+}).mount('#app');
+</script>
+
+</body>
+</html>
