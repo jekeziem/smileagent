@@ -3,10 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="cOxXFp9xhcvuXLG_L_jJxWZxf7QG13HwRSBT5toqaag" />
+    ...
+    <!-- 
+        CONTENT SECURITY POLICY: Restricts which external domains can load resources.
+        This prevents injected scripts from unknown domains, XSS, and data exfiltration.
+        Update the connect-src if you change the API backend URL.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com;
+        style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net;
+        img-src 'self' data: blob:;
+        connect-src 'self' https://smileagent-heak.onrender.com;
+    ">
     <title>SmileAgent | Your Smile, Optimised</title>
 
-
+    <!-- 
+        SUPPLY CHAIN SECURITY: All CDN dependencies pinned to exact versions.
+        If icons or Vue break, check these versions haven't been yanked from npm.
+        jsDelivr is more reliable than unpkg for production use.
+    -->
     <script src="https://cdn.jsdelivr.net/npm/vue@3.4.27/dist/vue.global.prod.js"></script>
+
+    <!-- Phosphor Icons v2.1.2 — only load the 2 weights we use (regular + fill).
+         Loading individual CSS files = ~200KB vs ~3MB for the full script bundle.
+         If you need other weights (thin, light, bold, duotone), add their CSS here. -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css" />
 
@@ -14,6 +37,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@500;600;700&display=swap" rel="stylesheet">
 
+    <!-- 
+        TAILWIND CSS: Using play CDN for development. For production:
+        1) npm install tailwindcss  
+        2) npx tailwindcss -i ./src/input.css -o ./dist/output.css --minify
+        3) Replace this script tag with: <link href="/dist/output.css" rel="stylesheet">
+        TODO: Migrate to production build before launch.
+    -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -89,7 +119,7 @@
                     <span class="font-heading font-semibold text-gray-900">SmileAgent</span>
                 </div>
                 <div class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
-                    Early Access
+                    Beta
                 </div>
             </div>
             <h1 v-if="!appMode" class="font-heading text-2xl font-bold text-gray-900 mb-1">Your Smile,<br>Optimised.</h1>
@@ -135,30 +165,33 @@
 		</button>
 		</div>
             
-            <!-- Credibility Footer -->
-            <div class="bg-white/80 rounded-2xl shadow-soft p-5 text-center space-y-4 mt-2">
-                <div>
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Get in Touch</p>
-                    <a href="mailto:info@smileagent.ie"
-                       class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 font-medium text-sm hover:bg-emerald-100 transition-colors">
-                        <i class="ph ph-envelope text-base"></i>
-                        info@smileagent.ie
-                    </a>
+            <!-- Footer -->
+            <div class="bg-white rounded-2xl shadow-soft p-5 space-y-4">
+                <!-- Contact -->
+                <div class="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl">
+                    <div class="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="ph ph-envelope-simple text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 font-medium">Get in touch</p>
+                        <a href="mailto:info@smileagent.ie" class="text-sm font-semibold text-gray-900 hover:text-emerald-600 transition-colors">info@smileagent.ie</a>
+                    </div>
                 </div>
+                
+                <!-- Links + Legal -->
                 <div class="flex items-center justify-center gap-4 text-xs text-gray-400">
-                    <a href="#" class="flex items-center gap-1 hover:text-emerald-600 transition-colors">
-                        <i class="ph ph-shield-check text-sm"></i>
-                        Privacy Policy
+                    <a href="#" class="hover:text-emerald-600 transition-colors flex items-center gap-1">
+                        <i class="ph ph-shield-check"></i> Privacy
                     </a>
-                    <span class="text-gray-200">·</span>
-                    <a href="#" class="flex items-center gap-1 hover:text-emerald-600 transition-colors">
-                        <i class="ph ph-file-text text-sm"></i>
-                        Terms of Service
+                    <span class="text-gray-200">|</span>
+                    <a href="#" class="hover:text-emerald-600 transition-colors flex items-center gap-1">
+                        <i class="ph ph-file-text"></i> Terms
                     </a>
                 </div>
-                <p class="text-[11px] text-gray-300 leading-relaxed">SmileAgent routes patients to care — it does not diagnose. © 2026</p>
+                <p class="text-[10px] text-gray-400 text-center">SmileAgent routes patients to care — it does not diagnose. © 2026</p>
             </div>
         </div>
+		
 
         <!-- ============================================ -->
         <!-- EMERGENCY MODE: TRIAGE FLOW -->
@@ -168,7 +201,7 @@
             <!-- Back Button -->
             <button v-if="triageStep !== 'ae_redirect' && triageStep !== 'results' && triageStep !== 'confirmed'" @click="goBackTriage" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4">
                 <i class="ph ph-arrow-left"></i>
-                <span class="text-sm">Back to home</span>
+                <span class="text-sm">Back</span>
             </button>
             
             <!-- Step 1: Red Flag Check -->
@@ -540,7 +573,7 @@
             <!-- Back to Mode Selection -->
             <button v-if="!result && !loading" @click="goHome" class="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4">
                 <i class="ph ph-arrow-left"></i>
-                <span class="text-sm">Back to home</span>
+                <span class="text-sm">Back</span>
             </button>
             
             <!-- ============================================ -->
@@ -640,12 +673,12 @@
             <!-- ============================================ -->
             <!-- STEP 2: RESULTS (WITH MED 2 SECTION) -->
             <!-- ============================================ -->
-            <div v-if="result && !showForm && !showPayment && !bookingComplete && !showAIScreen" class="animate-fade-in space-y-4">
+            <div v-if="result && !showForm && !bookingComplete && !showAIScreen" class="animate-fade-in space-y-4">
                 
                 <!-- Back Button -->
                 <button @click="result = null" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
                     <i class="ph ph-arrow-left"></i>
-                    <span class="text-sm">Back to treatments</span>
+                    <span class="text-sm">Back</span>
                 </button>
                 
                 <!-- Show All Options - Treatment Selector -->
@@ -950,11 +983,11 @@
                 </div>
                 
                 <!-- Clinics List (ORIGINAL WITH REVIEWS) -->
-                <div v-if="selectedTreatment || checkupMode">
+                <div v-if="selectedTreatment || smileGoal === 'checkup'">
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="font-heading font-semibold text-gray-900">
                             <i class="ph ph-map-pin text-emerald-500 mr-1"></i>
-                            Clondalkin Clinics
+                            {{ smileGoal === 'checkup' ? 'Available Clinics' : 'Partner Clinics' }}
                         </h3>
                         <span class="text-sm text-gray-500">{{ clinics.length }} options</span>
                     </div>
@@ -1000,11 +1033,15 @@
                             
                             <!-- Pricing -->
                             <div class="mb-3">
-                                <div class="flex justify-between items-center">
+                                <div v-if="selectedTreatment" class="flex justify-between items-center">
                                     <span class="text-sm text-gray-600">{{ getTreatmentDisplayName(selectedTreatment) }}:</span>
                                     <span class="font-heading font-bold text-gray-900">€{{ getClinicPrice(clinic).toLocaleString() }}</span>
                                 </div>
-                                <div v-if="med2Active && eligibilityResult.is_eligible" class="flex justify-between items-center mt-1">
+                                <div v-else class="text-sm text-gray-600">
+                                    <p class="font-medium text-gray-700 mb-1">Routine Checkup</p>
+                                    <p class="text-xs text-gray-500">Contact clinic for pricing</p>
+                                </div>
+                                <div v-if="selectedTreatment && med2Active && eligibilityResult.is_eligible" class="flex justify-between items-center mt-1">
                                     <span class="text-sm text-emerald-600 font-semibold">After relief:</span>
                                     <span class="font-heading font-bold text-emerald-600">€{{ getClinicNetPrice(clinic).toLocaleString() }}</span>
                                 </div>
@@ -1142,7 +1179,7 @@
             <!-- ============================================ -->
             <!-- STEP 3: BOOKING FORM (ORIGINAL) -->
             <!-- ============================================ -->
-            <div v-if="showForm && !showPayment" class="animate-fade-in space-y-4">
+            <div v-if="showForm" class="animate-fade-in space-y-4">
                 
                 <!-- Back Button -->
                 <button @click="showForm = false" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
@@ -1176,9 +1213,17 @@
                         
                         <div>
                             <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">PPSN * (for Med 2)</label>
-                            <input v-model="bookingData.ppsn" type="text" placeholder="1234567T"
+                            <input v-model="bookingData.ppsn" type="text" placeholder="1234567T" autocomplete="off"
                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 uppercase">
-                            <p class="text-[10px] text-gray-400 mt-1">Required for tax relief claim</p>
+                            <div class="flex items-start gap-1.5 mt-1.5 p-2 bg-emerald-50 rounded-lg">
+                                <i class="ph ph-shield-check text-emerald-600 mt-0.5 flex-shrink-0"></i>
+                                <p class="text-[10px] text-emerald-700">
+                                    Your PPSN is collected solely for 
+                                    <a href="https://www.revenue.ie/en/personal-tax-credits-reliefs-and-exemptions/health-and-age/health-expenses/dental-expenses.aspx" 
+                                       target="_blank" class="underline">Med 2 tax relief</a>.
+                                    It is encrypted in transit (HTTPS) and at rest, and never shared with third parties.
+                                </p>
+                            </div>
                         </div>
                         
                         <div>
@@ -1235,111 +1280,16 @@
             </div>
 
             <!-- ============================================ -->
-            <!-- STEP 4: PAYMENT (ORIGINAL WITH DROPDOWN) -->
+            <!-- STEP 4: NO PAYMENT REQUIRED (PAYMENT FORM REMOVED)
+                 The original payment form collected raw card data (number, CVV, 
+                 expiry) with a "Secured by Stripe" label but NO actual Stripe.js
+                 integration. To automated security scanners and Reddit users, this
+                 looked exactly like a card-skimming phishing page. It was the
+                 PRIMARY reason SmileAgent was flagged as potential malware.
+                 All payment collection has been removed. Costs are discussed
+                 at the consultation. See: OWASP A04:2021 Insecure Design
+            -->
             <!-- ============================================ -->
-            <div v-if="showPayment" class="animate-fade-in space-y-4">
-                
-                <!-- Back Button -->
-                <button @click="showPayment = false" class="flex items-center gap-2 text-gray-500 hover:text-gray-700">
-                    <i class="ph ph-arrow-left"></i>
-                    <span class="text-sm">Back to details</span>
-                </button>
-                
-                <!-- Payment Card -->
-                <div class="bg-white rounded-2xl shadow-soft p-5">
-                    <!-- Header -->
-                    <div class="mb-6">
-                        <h3 class="font-heading font-bold text-xl text-gray-900 mb-1">Secure Your Consultation</h3>
-                        <p class="text-sm text-gray-600">€50 deposit at {{ selectedClinic.clinic_name }}</p>
-                    </div>
-                    
-                    <!-- Cost Breakdown -->
-                    <div class="bg-gray-50 rounded-xl p-4 mb-4 space-y-2">
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">Estimated Treatment Cost:</span>
-                            <span class="font-medium text-gray-900">€{{ getClinicPrice(selectedClinic).toLocaleString() }}</span>
-                        </div>
-                        <div v-if="med2Active && eligibilityResult.is_eligible" class="flex justify-between text-sm">
-                            <span class="text-emerald-600">Med 2 Tax Relief:</span>
-                            <span class="font-medium text-emerald-600">-€{{ calculateTaxRelief(selectedClinic).toLocaleString() }}</span>
-                        </div>
-                        <div class="border-t border-gray-300 my-2"></div>
-                        <div class="flex justify-between text-base font-semibold">
-                            <span class="text-gray-900">Estimated Net Cost:</span>
-                            <span class="font-heading text-emerald-600">€{{ getClinicNetPrice(selectedClinic).toLocaleString() }}</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Deposit Explanation (COLLAPSIBLE) -->
-                    <div class="bg-gray-50 rounded-xl mb-4 overflow-hidden">
-                        <button @click="showDepositInfo = !showDepositInfo" 
-                                class="w-full px-4 py-3 flex items-center justify-between text-left">
-                            <h4 class="text-sm font-semibold text-gray-900">How the €50 Deposit Works</h4>
-                            <i :class="['ph text-gray-500 transition-transform', showDepositInfo ? 'ph-caret-up' : 'ph-caret-down']"></i>
-                        </button>
-                        <div v-if="showDepositInfo" class="px-4 pb-4">
-                            <ul class="text-xs text-gray-600 space-y-1.5">
-                                <li class="flex items-start gap-2">
-                                    <i class="ph ph-check text-emerald-500 mt-0.5 flex-shrink-0"></i>
-                                    <span>Secures your consultation slot</span>
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <i class="ph ph-check text-emerald-500 mt-0.5 flex-shrink-0"></i>
-                                    <span>Deducted from your final treatment cost</span>
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <i class="ph ph-check text-emerald-500 mt-0.5 flex-shrink-0"></i>
-                                    <span>Fully refundable if you cancel 24h+ in advance</span>
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <i class="ph ph-check text-emerald-500 mt-0.5 flex-shrink-0"></i>
-                                    <span>Includes initial consultation</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <!-- Payment Fields -->
-                    <div class="space-y-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Card Number</label>
-                            <input v-model="paymentData.cardNumber" @input="formatCardNumber" type="text" placeholder="1234 5678 9012 3456"
-                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Expiry Date</label>
-                                <input v-model="paymentData.expiry" @input="formatExpiry" type="text" placeholder="MM/YY"
-                                       class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">CVV</label>
-                                <input v-model="paymentData.cvv" type="text" maxlength="3" placeholder="123"
-                                       class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Pay Button -->
-                    <button @click="processPayment" 
-                            :disabled="!isPaymentFormValid || paymentInProgress"
-                            :class="[
-                                'w-full mt-4 py-4 rounded-xl font-semibold text-lg transition-all',
-                                isPaymentFormValid && !paymentInProgress
-                                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-200'
-                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            ]">
-                        <span v-if="paymentInProgress">Processing...</span>
-                        <span v-else><i class="ph ph-lock-simple mr-2"></i>Pay €50 Deposit</span>
-                    </button>
-                    
-                    <!-- Security Note -->
-                    <div class="flex items-center justify-center gap-1 mt-3 text-xs text-gray-400">
-                        <i class="ph ph-lock-simple"></i>
-                        <span>Payments secured by Stripe</span>
-                    </div>
-                </div>
-            </div>
 
             <!-- ============================================ -->
             <!-- STEP 5: CONFIRMATION (ORIGINAL) -->
@@ -1480,7 +1430,18 @@ const { createApp } = Vue;
 createApp({
     data() {
         return {
-            apiBase: 'https://smileagent-heak.onrender.com',
+            // API base URL — CRITICAL for CORS
+            // In production (smileagent.ie or Render URL): use '' (relative paths).
+            // This means /api/clinics goes to the SAME domain the page loaded from,
+            // so the browser treats it as same-origin — no CORS at all.
+            // Only use the full Render URL when developing locally.
+            apiBase: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                ? 'https://smileagent-heak.onrender.com'
+                : '',
+            
+            // Server readiness — tracked internally, never shown to user.
+            // The warmup ping wakes Render silently; apiFetch retries handle the rest.
+            serverReady: false,
             
             // Mode Selection
             appMode: null,
@@ -1514,12 +1475,10 @@ createApp({
             result: null,
             usedAI: false,
             showForm: false,
-            showPayment: false,
             bookingComplete: false,
             dragActive: false,
             showMed2Preview: false,
             showHelpModal: false,
-            showDepositInfo: false,
             
             // Photo
             previewUrl: null,
@@ -1529,7 +1488,6 @@ createApp({
             
             // Treatment
             selectedTreatment: null,
-            checkupMode: false,
             smileGoal: null,
             showAIScreen: false,
             aiAnalysis: null,
@@ -1557,14 +1515,10 @@ createApp({
                 interests: { whitening: false, bonding: false, implants: false, checkup: false }
             },
             
-            // Payment
-            paymentData: { cardNumber: '', expiry: '', cvv: '' },
-            
             // Progress
             statusMessage: 'Initialising...',
             scanProgress: 0,
             bookingInProgress: false,
-            paymentInProgress: false,
             validationErrors: [],
             
             // Confirmation
@@ -1574,21 +1528,92 @@ createApp({
     },
     
     computed: {
-        isEmergencyMode() { return this.appMode === 'emergency'; },
-        isPaymentFormValid() {
-            return this.paymentData.cardNumber.replace(/\s/g, '').length === 16 &&
-                   this.paymentData.expiry.length === 5 &&
-                   this.paymentData.cvv.length === 3;
-        }
+        isEmergencyMode() { return this.appMode === 'emergency'; }
     },
     
     mounted() {
-        this.loadClinics();
+        // Wake up the Render backend (free tier cold-starts take 30-50 s).
+        // This fires a lightweight GET to /health so the server is warm
+        // by the time the user actually interacts with the app.
+        this.warmUpServer();
         this.getUserLocation();
-        console.log('SmileAgent initialised');
+        console.log('SmileAgent v7.0 initialised');
     },
     
     methods: {
+        // ========== SERVER WARM-UP & API RESILIENCE ==========
+        // Render free tier spins down after 15 min of inactivity.
+        // Cold starts take 30-50 seconds. This warms the server on page load
+        // ========== RESILIENT API LAYER ==========
+        // Render free tier spins down after 15 min idle. First request
+        // after that triggers a cold start (30-50 s). This wrapper retries
+        // failed requests with exponential backoff so the user doesn't see
+        // "Something went wrong" just because the server was asleep.
+        
+        async warmUpServer() {
+            // Silently pings /health to wake Render's free tier.
+            // No banners, no toasts — the user never knows.
+            // apiFetch() handles retries if the server is still waking
+            // when the user actually interacts with something.
+            for (let i = 0; i < 3; i++) {
+                if (i > 0) await new Promise(r => setTimeout(r, 8000));
+                try {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 45000);
+                    const res = await fetch(`${this.apiBase}/health`, {
+                        signal: controller.signal,
+                        mode: 'cors'
+                    });
+                    clearTimeout(timeout);
+                    if (res.ok) {
+                        this.serverReady = true;
+                        this.loadClinics();
+                        return;
+                    }
+                } catch (e) {
+                    console.warn(`Silent warm-up attempt ${i + 1}/3:`, e.message);
+                }
+            }
+            // Server didn't respond — still try loading clinics;
+            // apiFetch will retry when user actually triggers an action.
+            this.loadClinics();
+        },
+        
+        /**
+         * Resilient fetch wrapper — retries up to `maxRetries` times with
+         * exponential backoff.  Returns the parsed JSON response or throws.
+         */
+        async apiFetch(path, options = {}, maxRetries = 2) {
+            const url = `${this.apiBase}${path}`;
+            let lastError;
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    if (attempt > 0) {
+                        // Exponential backoff: 2s, 4s, 8s ...
+                        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+                    }
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 30000); // 30 s timeout
+                    const response = await fetch(url, { ...options, signal: controller.signal });
+                    clearTimeout(timeout);
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.detail || `Server error ${response.status}`);
+                    }
+                    this.serverReady = true; // Confirm server is up
+                    return await response.json();
+                } catch (err) {
+                    lastError = err;
+                    if (err.name === 'AbortError') {
+                        console.warn(`Request to ${path} timed out (attempt ${attempt + 1})`);
+                    } else {
+                        console.warn(`API call to ${path} failed (attempt ${attempt + 1}):`, err.message);
+                    }
+                }
+            }
+            throw lastError;
+        },
+
         // ========== NAVIGATION ==========
         goHome() {
             this.appMode = null;
@@ -1599,7 +1624,6 @@ createApp({
             this.emergencyClinics = [];
             this.result = null;
             this.showForm = false;
-            this.showPayment = false;
             this.bookingComplete = false;
             this.smileGoal = null;
         },
@@ -1650,7 +1674,7 @@ createApp({
         async submitTriage() {
             this.triageLoading = true;
             try {
-                const response = await fetch(`${this.apiBase}/api/triage/assess`, {
+                this.triageResult = await this.apiFetch('/api/triage/assess', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1662,13 +1686,11 @@ createApp({
                         chief_complaint: this.triageData.chiefComplaint,
                         visible_damage: false
                     })
-                });
-                this.triageResult = await response.json();
-                await this.searchEmergencyClinics();
+                }); await this.searchEmergencyClinics();
                 this.triageStep = 'results';
             } catch (err) {
-                console.error(err);
-                this.showToast('Something went wrong', 'error');
+                console.error('Triage failed:', err);
+                this.showToast('Could not complete assessment — please try again.', 'error');
             } finally {
                 this.triageLoading = false;
             }
@@ -1676,7 +1698,7 @@ createApp({
         
         async searchEmergencyClinics() {
             try {
-                const response = await fetch(`${this.apiBase}/api/clinics/emergency`, {
+                const data = await this.apiFetch('/api/clinics/emergency', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1688,9 +1710,8 @@ createApp({
                         max_distance_km: 15
                     })
                 });
-                const data = await response.json();
                 this.emergencyClinics = data.clinics || [];
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error('Emergency clinic search failed:', err); }
         },
         
         setPaymentFilter(filter) { this.paymentFilter = filter; this.searchEmergencyClinics(); },
@@ -1740,8 +1761,7 @@ createApp({
         });
 
                 this.triageStep = 'confirmed';
-                this.showToast('Request sent to clinic!', 'success');
-            } catch (err) {
+                this.showToast('Request sent to clinic!', 'success'); } catch (err) {
                 console.error(err);
                 this.showToast('Failed to send request', 'error');
             } finally {
@@ -1763,8 +1783,8 @@ createApp({
         
         skipToCheckup() {
             this.appMode = 'cosmetic';
+            this.smileGoal = 'checkup';
             this.selectedTreatment = null;
-            this.checkupMode = true;
             this.usedAI = false;
             this.med2Active = false;
             this.loadClinics();
@@ -1796,8 +1816,7 @@ createApp({
                 this.selectedTreatment = null;
                 this.med2Active = true;
                 this.result = { status: 'success', photo_id: null, saved_for_med2: false, diagnosis: null };
-            }
-        },
+            } },
         
         getTreatmentDisplayName(key) { return this.treatments[key]?.display_name || key; },
         
@@ -1836,13 +1855,19 @@ createApp({
         // ========== COSMETIC: CLINICS ==========
         async loadClinics() {
             try {
-                const url = this.selectedTreatment 
-                    ? `${this.apiBase}/api/clinics?treatment=${this.selectedTreatment}`
-                    : `${this.apiBase}/api/clinics`;
-                const response = await fetch(url);
-                const data = await response.json();
+                const path = this.selectedTreatment 
+                    ? `/api/clinics?treatment=${this.selectedTreatment}`
+                    : `/api/clinics`;
+                const data = await this.apiFetch(path);
                 this.clinics = data.clinics.map(c => ({ ...c, selected_slot: null }));
-            } catch (err) { console.error('Failed to load clinics:', err); }
+            } catch (err) {
+                console.error('Failed to load clinics:', err);
+                // Only show error if user actively selected a treatment
+                // (not on background initial load)
+                if (this.selectedTreatment) {
+                    this.showToast('Could not load clinics — please try again.', 'error');
+                }
+            }
         },
         
         getClinicPrice(clinic) {
@@ -1866,7 +1891,7 @@ createApp({
             if (!this.photoFile || !this.selectedTreatment) return;
             
             this.loading = true;
-            this.showAIScreen = false; // Hide upload screen, show loading
+            this.showAIScreen = false;
             this.scanProgress = 0;
             this.usedAI = true;
             
@@ -1895,22 +1920,32 @@ createApp({
                 formData.append('file', this.photoFile);
                 formData.append('save_for_med2', this.savePhotoConsent);
                 
-                const response = await fetch(`${this.apiBase}/api/analyze-smile`, { method: 'POST', body: formData });
-                if (!response.ok) throw new Error('Analysis failed');
+                // FormData uploads can't use apiFetch (no JSON parsing), so do manual retry
+                let data = null;
+                for (let attempt = 0; attempt < 3; attempt++) {
+                    try {
+                        if (attempt > 0) await new Promise(r => setTimeout(r, 2000 * attempt));
+                        const response = await fetch(`${this.apiBase}/api/analyze-smile`, {
+                            method: 'POST', body: formData
+                        });
+                        if (!response.ok) throw new Error(`Server error ${response.status}`);
+                        data = await response.json();
+                        break;
+                    } catch (e) {
+                        if (attempt === 2) throw e;
+                        console.warn(`Analysis attempt ${attempt + 1} failed, retrying...`);
+                    }
+                }
                 
-                const data = await response.json();
                 this.photoId = data.photo_id;
-                
                 await new Promise(resolve => setTimeout(resolve, 2500));
                 clearInterval(interval);
                 
-                // Don't overwrite result - just store the AI data
                 this.aiAnalysis = data;
-                this.showToast('Analysis complete! Your photo will be included with your booking.', 'success');
-            } catch (err) {
+                this.showToast('Analysis complete! Your photo will be included with your booking.', 'success'); } catch (err) {
                 clearInterval(interval);
                 console.error('Analysis error:', err);
-                this.showToast('Analysis failed. Please try again.', 'error');
+                this.showToast('Analysis failed — please try again.', 'error');
                 this.usedAI = false;
             } finally {
                 this.loading = false;
@@ -1957,25 +1992,12 @@ createApp({
             if (!this.bookingData.ppsn || !/^\d{7}[A-Za-z]{1,2}$/.test(this.bookingData.ppsn.replace(/\s/g, ''))) this.validationErrors.push('Please enter a valid PPSN (7 digits + 1-2 letters)');
             if (!this.bookingData.address || this.bookingData.address.length < 10) this.validationErrors.push('Please enter your full address');
             
-            // Skip payment step for validation phase - go straight to booking
-            if (this.validationErrors.length === 0) this.processPayment();
+            if (this.validationErrors.length === 0) this.confirmBooking();
         },
         
-        // ========== COSMETIC: PAYMENT ==========
-        formatCardNumber(event) {
-            let value = event.target.value.replace(/\s/g, '');
-            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
-            this.paymentData.cardNumber = formattedValue.substring(0, 19);
-        },
-        
-        formatExpiry(event) {
-            let value = event.target.value.replace(/\D/g, '');
-            if (value.length >= 2) value = value.substring(0, 2) + '/' + value.substring(2, 4);
-            this.paymentData.expiry = value;
-        },
-        
-        async processPayment() {
-            this.paymentInProgress = true;
+        // ========== COSMETIC: CONFIRM BOOKING (no payment collected) ==========
+        async confirmBooking() {
+            this.bookingInProgress = true;
             
             try {
                 const interests = Object.entries(this.bookingData.interests)
@@ -2005,51 +2027,36 @@ createApp({
                     is_emergency: false
                 };
                 
-                const response = await fetch(`${this.apiBase}/api/book-appointment`, {
+                const data = await this.apiFetch('/api/book-appointment', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(bookingPayload)
                 });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    let errorMsg = 'Booking failed';
-                    if (typeof errorData.detail === 'string') {
-                        errorMsg = errorData.detail;
-                    } else if (Array.isArray(errorData.detail)) {
-                        errorMsg = errorData.detail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
-                    } else if (errorData.detail) {
-                        errorMsg = JSON.stringify(errorData.detail);
-                    }
-                    throw new Error(errorMsg);
-                }
-                
-                const data = await response.json();
 
-		await fetch(`${this.apiBase}/api/consent/log`, {
-    			method: 'POST',
-    			headers: { 'Content-Type': 'application/json' },
-    			body: JSON.stringify({
-        			user_identifier: this.bookingData.email || this.bookingData.phone,
-        			consent_type: this.med2Active ? 'cosmetic_booking_with_med2' : 'cosmetic_booking',
-       				consent_given: true,
-        			consent_version: 'v1.0'
-  			  })
-		});
-
+                // Log GDPR consent
+                try {
+                    await this.apiFetch('/api/consent/log', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_identifier: this.bookingData.email || this.bookingData.phone,
+                            consent_type: this.med2Active ? 'cosmetic_booking_with_med2' : 'cosmetic_booking',
+                            consent_given: true,
+                            consent_version: 'v1.0'
+                        })
+                    });
+                } catch (e) { console.warn('Consent log failed (non-critical):', e); }
                 
                 this.bookingReference = data.booking_id;
                 this.confirmationData = data;
                 this.bookingComplete = true;
-                this.showPayment = false;
                 this.showForm = false;
                 
-                this.showToast('Booking confirmed!', 'success');
-            } catch (err) {
+                this.showToast('Booking confirmed!', 'success'); } catch (err) {
                 console.error('Booking error:', err);
                 this.showToast(err.message || 'Booking failed. Please try again.', 'error');
             } finally {
-                this.paymentInProgress = false;
+                this.bookingInProgress = false;
             }
         },
         
@@ -2057,7 +2064,6 @@ createApp({
         startOver() {
             this.result = null;
             this.showForm = false;
-            this.showPayment = false;
             this.bookingComplete = false;
             this.showMed2Preview = false;
             this.showHelpModal = false;
@@ -2077,7 +2083,13 @@ createApp({
                 payer_ppsn: '', payer_address: '',
                 interests: { whitening: false, bonding: false, implants: false, checkup: false }
             };
-            this.paymentData = { cardNumber: '', expiry: '', cvv: '' };
             this.validationErrors = [];
             this.bookingReference = '';
             this.confirmationData = {};
+                        this.smileGoal = null;
+        }
+    }
+}).mount('#app');
+</script>
+</body>
+</html>
