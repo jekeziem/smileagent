@@ -143,13 +143,6 @@ def decrypt_field(encrypted_data: str) -> Optional[str]:
 # in production a generic message is returned so internal details don't leak.
 # ==========================================================================
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled exception on {request.method} {request.url.path}: {exc}",
-                 exc_info=DEBUG)
-    if DEBUG:
-        return JSONResponse(status_code=500, content={"detail": str(exc)})
-    return JSONResponse(status_code=500, content={"detail": "An internal error occurred"})
 # ---- Optional: ReportLab for Med 2 PDF generation ----
 # Not a hard dependency — the app runs without it, but /api/generate-med2 will 404.
 try:
@@ -712,7 +705,7 @@ CLINICS = [
         },
         "hours": {
             "mon": "08:00-20:00", "tue": "08:00-20:00", "wed": "08:00-20:00",
-            "thu": "08:00-20:00", "fri": "08:00-20:00", "sat": "12:00-218:00", "sun": "12:00-18:00"
+            "thu": "08:00-20:00", "fri": "08:00-20:00", "sat": "12:00-18:00", "sun": "12:00-18:00"
         }
     },
     # ------------------------------------------------------------------
@@ -1653,7 +1646,7 @@ def serve_index():
     index = BASE_DIR / "index.html"
     if index.exists():
         return FileResponse(str(index))
-    return HTMLResponse("<h1>SmileAgent API v4.0</h1><p>index.html not found</p>")
+    return HTMLResponse("<h1>SmileAgent API v7.0</h1><p>index.html not found</p>")
 
 @app.api_route("/health", methods=["GET", "HEAD", "POST", "OPTIONS"])
 def health_check():
