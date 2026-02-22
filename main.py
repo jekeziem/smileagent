@@ -1648,6 +1648,22 @@ def serve_index():
         return FileResponse(str(index))
     return HTMLResponse("<h1>SmileAgent API v7.0</h1><p>index.html not found</p>")
 
+@app.get("/privacy")
+def serve_privacy():
+    """Serve the GDPR-compliant privacy policy page."""
+    privacy = BASE_DIR / "privacy.html"
+    if privacy.exists():
+        return FileResponse(str(privacy))
+    return HTMLResponse("<h1>Privacy Policy</h1><p>Coming soon.</p>")
+
+@app.get("/terms")
+def serve_terms():
+    """Serve the terms of service page."""
+    terms = BASE_DIR / "terms.html"
+    if terms.exists():
+        return FileResponse(str(terms))
+    return HTMLResponse("<h1>Terms of Service</h1><p>Coming soon.</p>")
+
 @app.api_route("/health", methods=["GET", "HEAD", "POST", "OPTIONS"])
 def health_check():
     """Lightweight endpoint the frontend pings to wake up Render's free tier."""
