@@ -17,7 +17,51 @@
         img-src 'self' data: blob:;
         connect-src 'self' https://smileagent-heak.onrender.com;
     ">
-    <title>SmileAgent | Your Smile, Optimised</title>
+    <title>SmileAgent | Emergency Dental Triage & Booking in Dublin</title>
+    <meta name="description" content="Find emergency dental care, compare cosmetic treatment prices, and claim your 20% Med 2 tax relief. Free dental triage and clinic booking across Dublin.">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="SmileAgent">
+    <link rel="canonical" href="https://smileagent.ie/">
+
+    <!-- Open Graph (WhatsApp, LinkedIn, Facebook, iMessage link previews) -->
+    <meta property="og:title" content="SmileAgent | Emergency Dental Triage & Booking in Dublin">
+    <meta property="og:description" content="In pain? Find emergency dental care near you. Comparing cosmetic treatments? See prices and claim 20% tax relief. Free for patients.">
+    <meta property="og:url" content="https://smileagent.ie/">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="en_IE">
+    <meta property="og:site_name" content="SmileAgent">
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="SmileAgent | Emergency Dental Triage & Booking">
+    <meta name="twitter:description" content="Find emergency dental care, compare prices, and claim your 20% Med 2 tax relief. Free for patients in Dublin.">
+
+    <!-- Mobile browser theme colour (emerald brand) -->
+    <meta name="theme-color" content="#059669">
+
+    <!-- Structured Data: LocalBusiness + MedicalBusiness for Google rich results -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "MedicalBusiness",
+        "name": "SmileAgent",
+        "description": "Dental triage and booking platform connecting patients with emergency and cosmetic dental care across Dublin, Ireland.",
+        "url": "https://smileagent.ie",
+        "email": "info@smileagent.ie",
+        "areaServed": {
+            "@type": "City",
+            "name": "Dublin",
+            "addressCountry": "IE"
+        },
+        "serviceType": ["Emergency Dental Triage", "Cosmetic Dental Booking", "Med 2 Tax Relief"],
+        "priceRange": "Free for patients",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Dublin",
+            "addressCountry": "IE"
+        }
+    }
+    </script>
 
     <!-- 
         SUPPLY CHAIN SECURITY: All CDN dependencies pinned to exact versions.
@@ -173,17 +217,17 @@
                     </div>
                     <div>
                         <p class="text-xs text-gray-500 font-medium">Get in touch</p>
-                        <a href="mailto:info@smileagent.ie" class="text-sm font-semibold text-gray-900 hover:text-emerald-600 transition-colors">info@smileagent.ie</a>
+                        <a href="/cdn-cgi/l/email-protection#b3daddd5dcf3c0dedadfd6d2d4d6ddc79ddad6" class="text-sm font-semibold text-gray-900 hover:text-emerald-600 transition-colors"><span class="__cf_email__" data-cfemail="a3cacdc5cce3d0cecacfc6c2c4c6cdd78dcac6">[email&#160;protected]</span></a>
                     </div>
                 </div>
                 
                 <!-- Links + Legal -->
                 <div class="flex items-center justify-center gap-4 text-xs text-gray-400">
-                    <a href="#" class="hover:text-emerald-600 transition-colors flex items-center gap-1">
+                    <a href="/privacy" class="hover:text-emerald-600 transition-colors flex items-center gap-1">
                         <i class="ph ph-shield-check"></i> Privacy
                     </a>
                     <span class="text-gray-200">|</span>
-                    <a href="#" class="hover:text-emerald-600 transition-colors flex items-center gap-1">
+                    <a href="/terms" class="hover:text-emerald-600 transition-colors flex items-center gap-1">
                         <i class="ph ph-file-text"></i> Terms
                     </a>
                 </div>
@@ -324,12 +368,12 @@
                 
                 <!-- Urgency Banner -->
                 <div :class="['rounded-2xl p-4', 
-                             triageResult.urgency === 'orange' ? 'bg-amber-100 border-2 border-amber-400' :
+                             triageResult.urgency === 'orange' ? 'bg-red-100 border-2 border-red-400' :
                              triageResult.urgency === 'yellow' ? 'bg-yellow-100 border-2 border-yellow-400' :
                              'bg-emerald-100 border-2 border-emerald-400']">
                     <div class="flex items-center gap-3">
                         <div :class="['w-8 h-8 rounded-full',
-                                     triageResult.urgency === 'orange' ? 'bg-amber-500' :
+                                     triageResult.urgency === 'orange' ? 'bg-red-500' :
                                      triageResult.urgency === 'yellow' ? 'bg-yellow-500' : 'bg-emerald-500']"></div>
                         <div>
                             <p class="font-bold text-gray-900">{{ triageResult.urgency_display }}</p>
@@ -1434,7 +1478,7 @@
     </div>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 const { createApp } = Vue;
 
 createApp({
@@ -2103,15 +2147,3 @@ createApp({
                 interests: { whitening: false, bonding: false, implants: false, checkup: false }
             };
             this.validationErrors = [];
-            this.bookingReference = '';
-            this.confirmationData = {};
-            this.appMode = null;
-            this.smileGoal = null;
-            this.loadClinics();
-        }
-    }
-}).mount('#app');
-</script>
-
-</body>
-</html>
