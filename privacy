@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy | SmileAgent</title>
+    <meta name="description" content="SmileAgent privacy policy — how we collect, use, and protect your personal and health data.">
+    <link rel="canonical" href="https://smileagent.ie/privacy">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'DM Sans', sans-serif; }
+        h1, h2, h3 { font-family: 'Fraunces', serif; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-2xl mx-auto px-5 py-10">
+
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="/" class="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 mb-4">
+                &larr; Back to SmileAgent
+            </a>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
+            <p class="text-sm text-gray-500">Last updated: 22 February 2026</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm p-6 md:p-8 space-y-8 text-sm text-gray-700 leading-relaxed">
+
+            <!-- 1. Who We Are -->
+            <section>
+                <h2 class="text-lg font-bold text-gray-900 mb-3">1. Who We Are</h2>
+                <p>SmileAgent is a dental triage and booking platform operated from Dublin, Ireland. We connect patients with dental clinics for emergency care, cosmetic treatments, and routine checkups.</p>
+                <p class="mt-2"><strong>Data Controller:</strong> SmileAgent, Dublin, Ireland<br>
+                <strong>Contact:</strong> <a href="mailto:info@smileagent.ie" class="text-emerald-600 underline">info@smileagent.ie</a></p>
+            </section>
+
+            <!-- 2. Health Data Notice -->
+            <section class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <h2 class="text-lg font-bold text-gray-900 mb-2">2. Health Data — Special Category</h2>
+                <p>SmileAgent processes health-related data including dental symptoms, pain levels, and clinical photographs. Under GDPR Article 9, this is classified as <strong>special category data</strong> and receives additional protection.</p>
+                <p class="mt-2">We process health data <strong>only with your explicit consent</strong> (GDPR Article 9(2)(a)), which you provide when you submit a triage assessment or booking request. You may withdraw consent at any time by contacting us.</p>
+            </section>
+
+            <!-- 3. What We Collect -->
+            <section>
+                <h2 class="text-lg font-bold text-gray-900 mb-3">3. Information We Collect</h2>
+                <p class="mb-3">We collect only what is necessary to provide the service you have requested:</p>
+
+                <h3 class="font-semibold text-gray-900 mt-4 mb-2">Emergency Triage Flow</h3>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li>Name (optional) and phone number</li>
+                    <li>Contact preference (call or SMS)</li>
+                    <li>Red flag symptoms selected</li>
+                    <li>Pain level (1–10), whether pain is worsening, sleep disruption</li>
+                    <li>Chief complaint (free-text description of symptoms)</li>
+                    <li>Symptom duration</li>
+                    <li>Payment type (private, Medical Card, PRSI)</li>
+                    <li>Medical Card last 4 digits (if applicable)</li>
+                    <li>Approximate location (for clinic matching — via browser geolocation with your permission, or a default area)</li>
+                </ul>
+
+                <h3 class="font-semibold text-gray-900 mt-4 mb-2">Cosmetic Booking Flow</h3>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li>Full name, phone number, email address</li>
+                    <li>Home address</li>
+                    <li>PPS Number (for Med 2 tax relief form generation only)</li>
+                    <li>Treatment selection and selected time slot</li>
+                    <li>Dental photograph (optional, for AI smile analysis)</li>
+                    <li>Tax eligibility details (who is paying, tax status)</li>
+                    <li>Payer details if someone else is paying (name, PPSN, address, relationship)</li>
+                </ul>
+
+                <h3 class="font-semibold text-gray-900 mt-4 mb-2">Automatically Collected</h3>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li>IP address (for rate limiting and consent logging)</li>
+                    <li>Browser user agent (truncated, for consent records)</li>
+                    <li>Geolocation coordinates (only with your explicit browser permission)</li>
+                </ul>
+
+                <p class="mt-3"><strong>We do not collect:</strong> date of birth, payment card details, financial account information, or any data from children under 18.</p>
+            </section>
+
+            <!-- 4. Why We Process Your Data -->
+            <section>
+                <h2 class="text-lg font-bold text-gray-900 mb-3">4. How and Why We Use Your Data</h2>
+                <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="text-left p-3 font-semibold text-gray-900">Purpose</th>
+                            <th class="text-left p-3 font-semibold text-gray-900">Legal Basis (GDPR)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr>
+                            <td class="p-3">Emergency triage assessment and clinic referral</td>
+                            <td class="p-3">Explicit consent (Art. 9(2)(a)) for health data; Consent (Art. 6(1)(a)) for personal data</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3">Cosmetic treatment booking and clinic matching</td>
+                            <td class="p-3">Consent (Art. 6(1)(a))</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3">Med 2 tax relief form pre-fill and PDF generation</td>
+                            <td class="p-3">Consent (Art. 6(1)(a))</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3">Generating dentist-ready clinical briefs</td>
+                            <td class="p-3">Explicit consent (Art. 9(2)(a))</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3">GDPR consent record-keeping</td>
+                            <td class="p-3">Legal obligation (Art. 6(1)(c))</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3">Rate limiting and abuse prevention</td>
+                            <td class="p-3">Legitimate interest (Art. 6(1)(f))</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- 5. Data Sharing -->
+            <section>
+                <h2 class="text-lg font-bold text-gray-900 mb-3">5. Who We Share Your Data With</h2>
+                <p><strong>Dental clinics you select.</strong> When you submit a booking request or emergency referral, we send a clinical brief to the clinic you chose. This brief contains the information you provided (symptoms, pain level, contact details, payment type). We only share with the specific clinic you selected — never with other clinics or third parties.</p>
+                <p class="mt-2"><strong>Revenue Commissioners.</strong> If you use the Med 2 feature, a pre-filled Med 2 form is generated for you to submit to Revenue yourself. SmileAgent does not submit anything to Revenue on your behalf.</p>
+                <p class="mt-2"><strong>We do not</strong> sell, rent, or share your data with advertisers, data brokers, analytics providers, or any other third parties.</p>
+            </section>
+
+            <!-- 6. PPSN Handling -->
+            <section class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <h2 class="text-lg font-bold text-gray-900 mb-2">6. PPS Number Protection</h2>
+                <p>Your PPS Number is collected <strong>solely</strong> for generating your Med 2 tax relief form. It is:</p>
+                <ul class="list-disc pl-5 mt-2 space-y-1">
+                    <li><strong>Encrypted at rest</strong> using Fernet symmetric encryption (AES-128-CBC)</li>
+                    <li><strong>Validated</strong> using the Irish modulus-23 check digit algorithm before storage</li>
+                    <li><strong>Never shared</strong> with clinics — it appears only on the Med 2 PDF that you download</li>
+                    <li><strong>Never used</strong> for identification, marketing, or any purpose other than Med 2 generation</li>
+                </ul>
+            </section>
+
+            <!-- 7. Dental Photos -->
+            <section>
+                <h2 class="text-lg font-bold text-gray-900 mb-3">7. Dental Photographs</h2>
+                <p>If you upload a smile photo for AI analysis, it is stored temporarily on our server for processing. Photos are used only to generate your treatment recommendation and are included with your booking if you proceed. You can choose not to upload a photo — it is entirely optional and does not affect your ability to book.</p>
+            </section>
+
+            <!-- 8. Data Retention -->
+            <section>
+                <h2 class="text-lg font-bold text-gray-900 mb-3">8. How Long We Keep Your Data</h2>
+                <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="text-left p-3 font-semibold text-gray-900">Data Type</th>
+                            <th class="text-left p-3 font-semibold text-gray-900">Retention Period</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr>
+                            <td class="p-3">Booking records</td>
+                            <td class="p-3">2 years from booking date</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3">Emergency triage briefs</td>
+                            <td class="p-3">1 year from creation</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3">GDPR consent logs</td>
+                            <td class="p-3">6 years (legal requirement)</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3">Dental photographs</td>
+                            <td class="p-3">90 days, or until booking is complete</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3">Med 2 PDFs</td>
+                            <td class="p-3">Available for download for 30 days</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3">Digital signatures</td>
+                            <td class="p-3">6 years (tax record requirement)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="mt-3">You may request deletion of your data at any time by emailing us. We will delete it within 30 days unless we are legally required to retain it.</p>
+            </section>
+
+            <!-- 9. Your Rights -->
+            <section>
+                <h2 class="text-lg font-bold text-gray-900 mb-3">9. Your Rights Under GDPR</h2>
+                <p class="mb-3">As a data subject in the EU/EEA, you have the right to:</p>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li><strong>Access</strong> — request a copy of the personal data we hold about you</li>
+                    <li><strong>Rectification</strong> — correct inaccurate or incomplete data</li>
+                    <li><strong>Erasure</strong> — request deletion of your data ("right to be forgotten")</li>
+                    <li><strong>Restrict processing</strong> — limit how we use your data</li>
+                    <li><strong>Data portability</strong> — receive your data in a structured, machine-readable format</li>
+                    <li><strong>Object</strong> — object to processing based on legitimate interest</li>
+                    <li><strong>Withdraw consent</strong> — at any time, without affecting the lawfulness of prior processing</li>
+                </ul>
+                <p class="mt-3">To exercise any of these rights, email <a href="mailto:info@smileagent.ie" class="text-emerald-600 underline">info@smileagent.ie</a>. We will respond within 30 days.</p>
+            </section>
+
+            <!-- 10. Complaints -->
+            <section>
+                <h2 class="text-lg font-bold text-gray-900 mb-3">10. Complaints</h2>
+                <p>If you are not satisfied with how we handle your data, you have the right to lodge a complaint with the Irish Data Protection Commission:</p>
+                <div class="mt-2 bg-gray-50 rounded-lg p-3">
+                    <p><strong>Data Protection Commission</strong><br>
+                    21 Fitzwilliam Square South, Dublin 2, D02 RD28<br>
+                    Website: <a href="https://www.dataprotection.ie" target="_blank" class="text-emerald-600 underline">www.dataprotection.ie</a><br>
+                    Phone: +353 1 765 0100 / 1800 437 737</p>
+                </div>
+            </section>
+
+            <!-- 11. Cookies -->
+            <section>
+                <h2 class="text-lg font-bold text-gray-900 mb-3">11. Cookies and Tracking</h2>
+                <p>SmileAgent does not use cookies, tracking pixels, or third-party analytics services. We do not track your browsing behaviour. The only data we collect is what you explicitly submit through our forms.</p>
+            </section>
+
+            <!-- 12. Security -->
+            <section>
+                <h2 class="text-lg font-bold text-gray-900 mb-3">12. Security Measures</h2>
+                <p>We take the security of your data seriously. Our measures include:</p>
+                <ul class="list-disc pl-5 mt-2 space-y-1">
+                    <li>Fernet symmetric encryption (AES-128-CBC) for PII fields at rest</li>
+                    <li>HTTPS-only connections (TLS in transit)</li>
+                    <li>Content Security Policy headers restricting resource loading</li>
+                    <li>Rate limiting to prevent abuse</li>
+                    <li>Input validation including PPSN check-digit verification</li>
+                    <li>XSS protection via HTML escaping of all user-generated content</li>
+                    <li>CORS restricted to authorised domains</li>
+                </ul>
+                <p class="mt-2">No system is 100% secure. If you believe your data has been compromised, contact us immediately at <a href="mailto:info@smileagent.ie" class="text-emerald-600 underline">info@smileagent.ie</a>.</p>
+            </section>
+
+            <!-- 13. Children -->
+            <section>
+                <h2 class="text-lg font-bold text-gray-900 mb-3">13. Children</h2>
+                <p>SmileAgent is not intended for use by anyone under the age of 18. We do not knowingly collect data from minors. If you believe a child has submitted data through our service, please contact us and we will delete it promptly.</p>
+            </section>
+
+            <!-- 14. Changes -->
+            <section>
+                <h2 class="text-lg font-bold text-gray-900 mb-3">14. Changes to This Policy</h2>
+                <p>We may update this policy from time to time. Changes take effect when posted on this page. For material changes affecting how we process health data, we will make reasonable efforts to notify users (e.g. via a notice on the homepage). We recommend checking this page periodically.</p>
+            </section>
+
+            <!-- 15. Contact -->
+            <section class="border-t border-gray-200 pt-6">
+                <h2 class="text-lg font-bold text-gray-900 mb-3">15. Contact Us</h2>
+                <p>For any questions about this policy or your personal data:</p>
+                <p class="mt-2"><strong>Email:</strong> <a href="mailto:info@smileagent.ie" class="text-emerald-600 underline">info@smileagent.ie</a><br>
+                <strong>Location:</strong> Dublin, Ireland</p>
+            </section>
+
+        </div>
+
+        <p class="text-center text-xs text-gray-400 mt-6">© 2026 SmileAgent. All rights reserved.</p>
+    </div>
+</body>
+</html>
