@@ -589,11 +589,11 @@ CLINICS = [
     {
         "id": 8,
         "clinic_name": "Empire Dental Clinic",
-        "location": "5 Lower O'Connell Street, Dublin 1",
-        "eircode": "D01 T9W8",
-        "coordinates": {"lat": 53.3488, "lng": -6.2603},
-        "phone": "+353 1 874 6300",
-        "email": "info@empireclinic.ie",
+        "location": "51 Parnell Square W, Rotunda, Dublin 1",
+        "eircode": "D01 N5P6",
+        "coordinates": {"lat": 53.3537, "lng": -6.2637},
+        "phone": "+353 1 539 0470",
+        "email": "empire.clinic20@gmail.com",
         "verified": True,
         "cosmetic_partner": False,
         "practitioner": {
