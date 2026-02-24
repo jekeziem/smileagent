@@ -1426,7 +1426,7 @@ SmileAgent Booking System
     logger.info(f"To: {clinic_email}")
     logger.info(f"Subject: {subject}")
     logger.info("=" * 50)
-    logger.debug(email_body)
+    logger.info(email_body)
     logger.info("=" * 50)
 
 
