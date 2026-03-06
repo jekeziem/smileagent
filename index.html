@@ -6,8 +6,7 @@
     <meta name="google-site-verification" content="cOxXFp9xhcvuXLG_L_jJxWZxf7QG13HwRSBT5toqaag" />
     <!-- 
         CONTENT SECURITY POLICY: Restricts which external domains can load resources.
-        This prevents injected scripts from unknown domains, XSS, and data exfiltration.
-        Update the connect-src if you change the API backend URL.
+        
     -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
@@ -64,15 +63,11 @@
     </script>
 
     <!-- 
-        SUPPLY CHAIN SECURITY: All CDN dependencies pinned to exact versions.
-        If icons or Vue break, check these versions haven't been yanked from npm.
-        jsDelivr is more reliable than unpkg for production use.
+        
     -->
     <script src="https://cdn.jsdelivr.net/npm/vue@3.4.27/dist/vue.global.prod.js"></script>
 
-    <!-- Phosphor Icons v2.1.2 — only load the 2 weights we use (regular + fill).
-         Loading individual CSS files = ~200KB vs ~3MB for the full script bundle.
-         If you need other weights (thin, light, bold, duotone), add their CSS here. -->
+    <!-- Phosphor Icons v2.1.2 — only load the 2 weights 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css" />
 
@@ -1334,13 +1329,7 @@
 
             <!-- ============================================ -->
             <!-- STEP 4: NO PAYMENT REQUIRED (PAYMENT FORM REMOVED)
-                 The original payment form collected raw card data (number, CVV, 
-                 expiry) with a "Secured by Stripe" label but NO actual Stripe.js
-                 integration. To automated security scanners and Reddit users, this
-                 looked exactly like a card-skimming phishing page. It was the
-                 PRIMARY reason SmileAgent was flagged as potential malware.
-                 All payment collection has been removed. Costs are discussed
-                 at the consultation. See: OWASP A04:2021 Insecure Design
+                 
             -->
             <!-- ============================================ -->
 
@@ -1484,11 +1473,6 @@ const { createApp } = Vue;
 createApp({
     data() {
         return {
-            // API base URL — CRITICAL for CORS
-            // In production (smileagent.ie or Render URL): use '' (relative paths).
-            // This means /api/clinics goes to the SAME domain the page loaded from,
-            // so the browser treats it as same-origin — no CORS at all.
-            // Only use the full Render URL when developing locally.
             apiBase: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
                 ? 'https://smileagent-heak.onrender.com'
                 : '',
