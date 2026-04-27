@@ -976,7 +976,7 @@ class PRSIEligibilityCheck(BaseModel):
     age_bracket: str = Field(..., description="One of: under_21, 21_28, 29_65, 66_plus")
     employment_status: str = Field(..., description="One of: paye, self_employed, retired, dependent_spouse, not_working")
     
-  @validator('age_bracket')
+    @validator('age_bracket')
     def validate_age_bracket(cls, v):
         allowed = {"under_21", "21_28", "29_65", "66_plus"}
         if v not in allowed:
