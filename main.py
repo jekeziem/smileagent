@@ -972,6 +972,24 @@ class TaxEligibilityCheck(BaseModel):
     payer_address: Optional[str] = None
     payer_relationship: Optional[str] = None
 
+class PRSIEligibilityCheck(BaseModel):
+    age_bracket: str = Field(..., description="One of: under_21, 21_28, 29_65, 66_plus")
+    employment_status: str = Field(..., description="One of: paye, self_employed, retired, dependent_spouse, not_working")
+    
+  @validator('age_bracket')
+    def validate_age_bracket(cls, v):
+        allowed = {"under_21", "21_28", "29_65", "66_plus"}
+        if v not in allowed:
+            raise ValueError(f"age_bracket must be one of {allowed}")
+        return v
+
+    @validator('employment_status')
+    def validate_employment_status(cls, v):
+        allowed = {"paye", "self_employed", "retired", "dependent_spouse", "not_working"}
+        if v not in allowed:
+            raise ValueError(f"employment_status must be one of {allowed}")
+        return v
+
 class BookingRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     phone: str
@@ -1163,7 +1181,149 @@ def get_routine_self_care() -> List[str]:
         "Maintain normal brushing and flossing",
         "Note any changes in symptoms",
     ]
+  
+# ============================================================
+# PRSI TREATMENT BENEFIT PRE-SCREEN
+# Rules-based pre-check based on gov.ie published criteria.
+# Does not verify PRSI contribution counts — only the welfare.ie
+# eligibility checker or a Welfare Partners-registered provider can do that.
+# Returns a status that tells the patient whether their category typically
+# qualifies, so they know whether to ask the clinic to verify.
+# ============================================================
 
+def assess_prsi_eligibility(check: "PRSIEligibilityCheck") -> dict:
+    """Run the rules tree from gov.ie Treatment Benefit Scheme criteria.
+
+    Returns one of:
+      - likely_eligible: category typically qualifies, confirm with clinic
+      - borderline:      category may qualify depending on contributions
+      - unlikely:        category typically doesn't qualify, may qualify under spouse
+    """
+    age = check.age_bracket
+    emp = check.employment_status
+    welfare_url = "https://services.mywelfare.ie/en/topics/health-disability-illness/eligibility-checker/"
+
+    # Under 21: low bar (39 contributions any time)
+    if age == "under_21":
+        if emp in ("paye", "self_employed"):
+            return {
+                "status": "likely_eligible",
+                "headline": "Likely eligible",
+                "message": "Most under-21s with any PAYE or self-employment history qualify with just 39 PRSI contributions.",
+                "next_steps": "Bring your PPS number and date of birth to the clinic. They'll verify with welfare.ie before your appointment.",
+                "verify_url": welfare_url
+            }
+        if emp == "dependent_spouse":
+            return {
+                "status": "borderline",
+                "headline": "May qualify under spouse / partner",
+                "message": "You may still qualify on your spouse, civil partner or cohabitant's PRSI record.",
+                "next_steps": "A dependant spouse application form is needed. Ask your clinic to issue one, or contact the Treatment Benefit Section directly.",
+                "verify_url": welfare_url
+            }
+        return {
+            "status": "borderline",
+            "headline": "Eligibility depends on contributions",
+            "message": "If you have any prior PAYE history, you may still qualify. 39 contributions any time is the bar.",
+            "next_steps": "Worth asking your clinic to verify — they can check via welfare.ie with your PPS and DOB.",
+            "verify_url": welfare_url
+        }
+
+    # 21-28: 39 contributions + governing contribution year requirement
+    if age == "21_28":
+        if emp in ("paye", "self_employed"):
+            return {
+                "status": "likely_eligible",
+                "headline": "Likely eligible",
+                "message": "Most 21–28-year-olds in current PAYE or self-employment qualify. 39 contributions plus contribution-year conditions are the bar.",
+                "next_steps": "Bring your PPS number and date of birth to the clinic. They'll verify with welfare.ie before your appointment.",
+                "verify_url": welfare_url
+            }
+        if emp == "dependent_spouse":
+            return {
+                "status": "borderline",
+                "headline": "May qualify under spouse / partner",
+                "message": "You may still qualify on your spouse, civil partner or cohabitant's PRSI record if they're a qualified contributor.",
+                "next_steps": "Ask your clinic for a dependant spouse application form, or contact the Treatment Benefit Section.",
+                "verify_url": welfare_url
+            }
+        return {
+            "status": "borderline",
+            "headline": "Eligibility depends on contributions",
+            "message": "If you've worked PAYE in the last few years, you may still qualify based on your governing contribution year.",
+            "next_steps": "Worth asking your clinic to verify — they can check via welfare.ie with your PPS and DOB.",
+            "verify_url": welfare_url
+        }
+
+    # 29-65: 260 lifetime contributions + governing contribution year
+    if age == "29_65":
+        if emp in ("paye", "self_employed"):
+            return {
+                "status": "likely_eligible",
+                "headline": "Likely eligible",
+                "message": "Most working adults aged 29–65 with sustained PAYE or self-employment qualify. 260 lifetime contributions plus recent year conditions are the bar.",
+                "next_steps": "Bring your PPS number and date of birth to the clinic. They'll verify with welfare.ie before your appointment.",
+                "verify_url": welfare_url
+            }
+        if emp == "dependent_spouse":
+            return {
+                "status": "borderline",
+                "headline": "May qualify under spouse / partner",
+                "message": "You may still qualify on your spouse, civil partner or cohabitant's PRSI record if they're a qualified contributor.",
+                "next_steps": "Ask your clinic for a dependant spouse application form, or contact the Treatment Benefit Section.",
+                "verify_url": welfare_url
+            }
+        if emp == "retired":
+            return {
+                "status": "borderline",
+                "headline": "Eligibility depends on prior work record",
+                "message": "If you accumulated 260 PRSI contributions during your working life, you likely still qualify.",
+                "next_steps": "Ask your clinic to verify — they can check via welfare.ie with your PPS and DOB.",
+                "verify_url": welfare_url
+            }
+        return {
+            "status": "borderline",
+            "headline": "Eligibility depends on contributions",
+            "message": "If you have prior PAYE history, you may qualify. The bar is 260 lifetime contributions plus recent contribution-year conditions.",
+            "next_steps": "Worth asking your clinic to verify — they can check via welfare.ie with your PPS and DOB.",
+            "verify_url": welfare_url
+        }
+
+    # 66+: pension-age rules; once qualified at 60-65 you keep entitlement for life
+    if age == "66_plus":
+        if emp in ("paye", "self_employed", "retired"):
+            return {
+                "status": "likely_eligible",
+                "headline": "Likely eligible",
+                "message": "If you qualified for Treatment Benefit between ages 60–65, you keep that entitlement for life. Most retirees with full work histories qualify.",
+                "next_steps": "Bring your PPS number and date of birth to the clinic. They'll verify with welfare.ie before your appointment.",
+                "verify_url": welfare_url
+            }
+        if emp == "dependent_spouse":
+            return {
+                "status": "borderline",
+                "headline": "May qualify under spouse / partner",
+                "message": "You may still qualify on your spouse, civil partner or cohabitant's PRSI record.",
+                "next_steps": "Ask your clinic for a dependant spouse application form, or contact the Treatment Benefit Section.",
+                "verify_url": welfare_url
+            }
+        return {
+            "status": "borderline",
+            "headline": "Eligibility depends on prior work record",
+            "message": "If you accumulated 260 PRSI contributions during your working life, you may still qualify.",
+            "next_steps": "Worth asking your clinic to verify — they can check via welfare.ie with your PPS and DOB.",
+            "verify_url": welfare_url
+        }
+
+    # Fallback — should never hit due to validators
+    return {
+        "status": "borderline",
+        "headline": "Worth checking",
+        "message": "Eligibility depends on your specific PRSI contribution history.",
+        "next_steps": "Ask your clinic to verify, or check directly on welfare.ie.",
+        "verify_url": welfare_url
+    }
+  
 def assess_triage(triage_input: TriageInput) -> dict:
     """Core triage logic - rules-based, no AI. Routes, does NOT diagnose."""
     
@@ -1910,6 +2070,20 @@ async def check_tax_eligibility(check: TaxEligibilityCheck):
         "strategy_tip": strategy_tip,
         "relief_rate": 0.20 if is_eligible else 0
     }
+  
+@app.post("/api/prsi/check-eligibility")
+async def check_prsi_eligibility(check: PRSIEligibilityCheck):
+    """Patient-side PRSI Treatment Benefit pre-screen.
+
+    Returns a non-binding eligibility pre-check based on documented gov.ie rules.
+    Always recommends verification via welfare.ie or the clinic.
+    """
+    try:
+        result = assess_prsi_eligibility(check)
+        return result
+    except Exception as e:
+        logger.error(f"PRSI eligibility check failed: {e}")
+        raise HTTPException(status_code=500, detail="Could not run eligibility check")
 
 @app.post("/api/book-appointment")
 async def book_appointment(booking: BookingRequest):
