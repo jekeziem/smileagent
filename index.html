@@ -421,6 +421,174 @@
                         </div>
                     </div>
                 </div>
+				<!-- ============================================ -->
+                <!-- PRSI ELIGIBILITY WIZARD — appears when PRSI payment filter is selected -->
+                <!-- ============================================ -->
+                <div v-if="prsiCheckActive && paymentFilter === 'prsi'" class="bg-white rounded-2xl shadow-soft p-5 animate-fade-in">
+
+                    <!-- Header with toggle to dismiss -->
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-semibold text-gray-900">
+                            <i class="ph ph-shield-check text-emerald-500 mr-1"></i>
+                            Quick PRSI Eligibility Check
+                        </h3>
+                        <button @click="prsiCheckActive = false; resetPrsiCheck()"
+                                class="text-xs text-gray-400 hover:text-gray-600">
+                            Skip
+                        </button>
+                    </div>
+
+                    <!-- Benefits banner -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4">
+                        <p class="text-xs font-semibold text-blue-800 mb-1">
+                            If you qualify, your PRSI dental benefits this year:
+                        </p>
+                        <ul class="text-xs text-blue-700 space-y-0.5">
+                            <li class="flex items-start gap-1">
+                                <i class="ph ph-check text-blue-500 mt-0.5"></i>
+                                <span><strong>Free</strong> dental exam (department covers full cost)</span>
+                            </li>
+                            <li class="flex items-start gap-1">
+                                <i class="ph ph-check text-blue-500 mt-0.5"></i>
+                                <span>Scale &amp; polish for as little as <strong>€15</strong> (€50 government contribution)</span>
+                            </li>
+                            <li class="flex items-start gap-1">
+                                <i class="ph ph-check text-blue-500 mt-0.5"></i>
+                                <span><strong>€42</strong> toward periodontal treatment if clinically necessary</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Wizard — only show if no result yet -->
+                    <div v-if="!prsiResult" class="space-y-4">
+
+                        <!-- Question 1: Age -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Your age bracket</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button @click="prsiAge = 'under_21'"
+                                        :class="['px-3 py-2.5 rounded-lg text-sm border-2 transition-all',
+                                                 prsiAge === 'under_21' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    Under 21
+                                </button>
+                                <button @click="prsiAge = '21_28'"
+                                        :class="['px-3 py-2.5 rounded-lg text-sm border-2 transition-all',
+                                                 prsiAge === '21_28' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    21 – 28
+                                </button>
+                                <button @click="prsiAge = '29_65'"
+                                        :class="['px-3 py-2.5 rounded-lg text-sm border-2 transition-all',
+                                                 prsiAge === '29_65' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    29 – 65
+                                </button>
+                                <button @click="prsiAge = '66_plus'"
+                                        :class="['px-3 py-2.5 rounded-lg text-sm border-2 transition-all',
+                                                 prsiAge === '66_plus' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    66+
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Question 2: Employment -->
+                        <div v-if="prsiAge">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Employment status</label>
+                            <div class="space-y-2">
+                                <button @click="prsiEmployment = 'paye'"
+                                        :class="['w-full px-4 py-3 rounded-lg text-sm border-2 transition-all text-left',
+                                                 prsiEmployment === 'paye' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    <i class="ph ph-briefcase mr-2"></i>PAYE employed
+                                </button>
+                                <button @click="prsiEmployment = 'self_employed'"
+                                        :class="['w-full px-4 py-3 rounded-lg text-sm border-2 transition-all text-left',
+                                                 prsiEmployment === 'self_employed' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    <i class="ph ph-user-circle mr-2"></i>Self-employed
+                                </button>
+                                <button @click="prsiEmployment = 'retired'"
+                                        :class="['w-full px-4 py-3 rounded-lg text-sm border-2 transition-all text-left',
+                                                 prsiEmployment === 'retired' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    <i class="ph ph-armchair mr-2"></i>Retired
+                                </button>
+                                <button @click="prsiEmployment = 'dependent_spouse'"
+                                        :class="['w-full px-4 py-3 rounded-lg text-sm border-2 transition-all text-left',
+                                                 prsiEmployment === 'dependent_spouse' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    <i class="ph ph-users-three mr-2"></i>Dependent on spouse / partner
+                                </button>
+                                <button @click="prsiEmployment = 'not_working'"
+                                        :class="['w-full px-4 py-3 rounded-lg text-sm border-2 transition-all text-left',
+                                                 prsiEmployment === 'not_working' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200']">
+                                    <i class="ph ph-pause-circle mr-2"></i>Not currently working
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <button @click="checkPrsiEligibility"
+                                :disabled="!prsiAge || !prsiEmployment || prsiLoading"
+                                :class="['w-full py-3 rounded-xl font-medium transition-all',
+                                         prsiAge && prsiEmployment && !prsiLoading
+                                             ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                             : 'bg-gray-200 text-gray-400 cursor-not-allowed']">
+                            {{ prsiLoading ? 'Checking...' : 'Check Eligibility' }}
+                        </button>
+                    </div>
+
+                    <!-- Result — likely eligible -->
+                    <div v-if="prsiResult && prsiResult.status === 'likely_eligible'" class="space-y-3">
+                        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-emerald-500">
+                                    <i class="ph ph-check text-white"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-bold text-gray-900 mb-1">{{ prsiResult.headline }}</p>
+                                    <p class="text-xs text-gray-700 mb-2">{{ prsiResult.message }}</p>
+                                    <p class="text-xs text-gray-600">{{ prsiResult.next_steps }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <a :href="prsiResult.verify_url" target="_blank" rel="noopener"
+                               class="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700">
+                                <i class="ph ph-arrow-square-out"></i>
+                                Verify yourself on welfare.ie
+                            </a>
+                            <button @click="resetPrsiCheck" class="text-xs text-gray-500 underline">Check again</button>
+                        </div>
+                    </div>
+
+                    <!-- Result — borderline -->
+                    <div v-if="prsiResult && prsiResult.status === 'borderline'" class="space-y-3">
+                        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-amber-500">
+                                    <i class="ph ph-warning text-white"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-bold text-gray-900 mb-1">{{ prsiResult.headline }}</p>
+                                    <p class="text-xs text-gray-700 mb-2">{{ prsiResult.message }}</p>
+                                    <p class="text-xs text-gray-600">{{ prsiResult.next_steps }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <a :href="prsiResult.verify_url" target="_blank" rel="noopener"
+                               class="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700">
+                                <i class="ph ph-arrow-square-out"></i>
+                                Verify on welfare.ie
+                            </a>
+                            <button @click="resetPrsiCheck" class="text-xs text-gray-500 underline">Check again</button>
+                        </div>
+                    </div>
+
+                    <!-- Footer disclaimer -->
+                    <p class="text-[10px] text-gray-400 text-center mt-4">
+                        Pre-screen only. Final eligibility verified by your clinic via welfare.ie.
+                        SmileAgent does not handle PRSI claims directly.
+                    </p>
+                </div>
+                <!-- END PRSI ELIGIBILITY WIZARD -->
                 <div>
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="font-heading font-semibold text-gray-900">
@@ -1504,6 +1672,11 @@ createApp({
             emergencyClinics: [],
             paymentFilter: 'private',
             searchRadius: 15,
+            prsiCheckActive: false,           // toggles wizard visibility
+            prsiAge: '',                      // 'under_21' | '21_28' | '29_65' | '66_plus'
+            prsiEmployment: '',               // 'paye' | 'self_employed' | 'retired' | 'dependent_spouse' | 'not_working'
+            prsiResult: null,                 // populated after backend call
+            prsiLoading: false,
             distanceOptions: [
                 { label: '5 km', value: 5 },
                 { label: '15 km', value: 15 },
@@ -1760,8 +1933,46 @@ createApp({
             } catch (err) { console.error('Emergency clinic search failed:', err); }
         },
         
-        setPaymentFilter(filter) { this.paymentFilter = filter; this.searchEmergencyClinics(); },
+        setPaymentFilter(filter) {
+    this.paymentFilter = filter;
+    this.prsiCheckActive = (filter === 'prsi');
+    if (filter !== 'prsi') this.resetPrsiCheck();
+    this.searchEmergencyClinics();
+},
         setSearchRadius(km) { this.searchRadius = km; this.searchEmergencyClinics(); },
+		// ========== PRSI ELIGIBILITY ==========
+        async checkPrsiEligibility() {
+            if (!this.prsiAge || !this.prsiEmployment) return;
+            this.prsiLoading = true;
+            try {
+                const data = await this.apiFetch('/api/prsi/check-eligibility', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        age_bracket: this.prsiAge,
+                        employment_status: this.prsiEmployment
+                    })
+                });
+                this.prsiResult = data;
+                if (data.status === 'likely_eligible') {
+                    this.showToast('You likely qualify — confirm with the clinic', 'success');
+                } else {
+                    this.showToast('Eligibility may depend on contributions — check with the clinic', 'info');
+                }
+            } catch (err) {
+                console.error('PRSI eligibility check failed:', err);
+                this.showToast('Could not check eligibility — please try again', 'error');
+            } finally {
+                this.prsiLoading = false;
+            }
+        },
+
+        resetPrsiCheck() {
+            this.prsiAge = '';
+            this.prsiEmployment = '';
+            this.prsiResult = null;
+        },
+		
         selectEmergencyClinic(clinic) { this.selectedEmergencyClinic = clinic; this.triageStep = 'booking'; },
         
         async submitEmergencyBooking() {
